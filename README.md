@@ -43,6 +43,27 @@ GPU Data 是四个可独立购买产品中的第一个：
 
 四个产品共用数据标准，但 GPU Data 不包含其他三个产品的能力。早期销售只针对客户当前最痛的问题，不主推四件套。
 
+## 从数据到执行的责任边界
+
+| 环节 | 谁负责 |
+| --- | --- |
+| 数据清洗、成本对账 | GPU Data |
+| 需求量与峰值输入 | 用户或 GPU Forecast |
+| SLA、备用容量、合同限制 | 产品规则 + 用户确认 |
+| 把业务要求变成数学约束 | GPU Optimize |
+| 搜索满足约束的最低成本组合 | 求解器 |
+| 风险解释、审批材料 | GPU Optimize |
+| 是否执行方案 | 客户负责人 |
+
+这套责任边界是基于 FinOps、云厂商优化实践和第一版安全范围形成的产品设计，不代表所有平台必须采用相同分工。
+
+专业依据：
+
+- [FinOps Usage Optimization](https://www.finops.org/framework/capabilities/workload-optimization/)：先观察利用率、性能和业务约束，再评估优化机会；
+- [AWS Compute Optimizer](https://docs.aws.amazon.com/compute-optimizer/latest/ug/view-ec2-recommendations.html)：建议应同时呈现利用率、价格、预计表现和性能风险；
+- [Azure Advisor 成本建议](https://learn.microsoft.com/en-us/azure/advisor/advisor-cost-recommendations)：节省估算必须考虑历史窗口、承诺折扣和实际费率；
+- [NVIDIA GPU Sharing](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html)：共享方式具有不同的隔离和故障风险，不能把“共享 GPU”直接视为安全动作。
+
 ## 安全边界
 
 - 文件只存在于当前 Streamlit 会话；
