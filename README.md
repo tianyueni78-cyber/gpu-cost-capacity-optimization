@@ -1,22 +1,24 @@
-# GPU Cost & Capacity Copilot
+# GPU Optimize
 
-面向中小型 AI 团队的 GPU 成本与容量决策产品。客户导入资源清单、使用记录、云账单和 SLA 后，系统完成字段映射、数据审计、成本归因、容量预测与优化测算，并输出带证据、收益和风险的行动建议。
+GPU Optimize 把经过审计的 GPU 资源、使用、账单和 SLA 数据，转换成满足客户确认约束的可审批配置方案。
 
-> 当前阶段：本地客户版 MVP 已支持“上传 CSV → 引导式字段映射 → 自动数据审计”。成本归因、容量预测和优化建议将接在可信数据之后。
+> 当前分支只上线“容量分配优化”。采购组合和运行配置仍在后续阶段，页面中不会展示尚未验证的空壳功能。
 
-## 当前可用功能
+## 当前可用结果
 
-- 分别上传 GPU 资源清单、使用记录、云账单和团队 SLA；
-- 自动推荐中英文字段映射，由用户逐项确认；
-- 检查主键重复、必填空值、数值范围、采购方式、日期格式和账单金额公式；
-- 检查使用记录、账单与资源清单之间的资源池关联；
-- 将发现分为“通过、警告、阻断”，并给出处理建议；
-- 下载 UTF-8 编码的审计结果 CSV。
+- 上传四张 CSV，完成字段映射与数据审计；
+- 确认团队峰值需求、SLA 备用容量和共享边界；
+- 使用整数求解器计算满足硬约束的团队保留容量；
+- 比较当前、安全释放和低变更方案；
+- 无可行方案时说明 GPU 缺口，不自动放松约束；
+- 导出 Markdown 审批报告和方案 CSV。
+
+受影响成本表示可调整容量对应的成本规模，不是已验证节省。共享容量不会自动降低账单；采购合同、退出费用和实际折扣要在采购优化阶段复核。
 
 ## 本地运行
 
 ```powershell
-git clone https://github.com/tianyueni78-cyber/gpu-cost-capacity-optimization.git
+git clone --branch feature/gpu-optimize-product https://github.com/tianyueni78-cyber/gpu-cost-capacity-optimization.git
 cd gpu-cost-capacity-optimization
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -24,73 +26,42 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-浏览器会打开本地页面。四类文件的第一行必须是字段名；系统给出的映射只是建议，确认无误后再运行审计。
-
-## 在线案例
-
-- [GPU FinOps 管理驾驶舱](https://tianyueni78-cyber.github.io/ai-cloud-cost-optimization-/)
-- [原始分析项目](https://github.com/tianyueni78-cyber/ai-cloud-cost-optimization-)
-
-## 产品工作流
+页面顺序：
 
 ```text
-导入数据
-→ 确认字段映射
-→ 数据审计
-→ 成本与使用基线
-→ 容量预测
-→ 采购、共享与缩扩容优化
-→ 收益和风险验证
-→ 导出管理层报告
+基线接入 → 目标与约束 → 容量优化 → 方案与审批
 ```
 
-## 产品形态
+## 产品边界
 
-- **公开演示版**：使用合成数据展示产品结果，兼作求职作品集。
-- **本地客户版**：在客户或分析人员电脑上处理真实脱敏数据，不上传、不长期保存、不自动修改生产资源。
-- **后续在线版**：真实需求得到验证后，再增加服务器、账号、历史项目和持续监控。
+- GPU Data 负责数据清洗、成本对账和问题发现；
+- GPU Forecast 或用户提供未来需求与峰值；
+- GPU Optimize 负责约束建模、方案求解、风险解释和审批材料；
+- GPU Improve 负责实施后的节省与运行效果验证；
+- 客户负责人决定是否执行方案。
 
-## 文档入口
+本产品不自动修改云资源、Kubernetes 或生产集群。
 
-- [产品设计](docs/产品设计.md)
-- [学习与作品资产路线](docs/学习与作品资产路线.md)
-- [GPU产品知识主线与学习顺序](docs/GPU产品知识主线与学习顺序.md)
+## 专业依据
 
-## 第一版完成标准
+- [FinOps Usage Optimization](https://www.finops.org/framework/capabilities/usage-optimization/)
+- [FinOps Rate Optimization](https://www.finops.org/framework/capabilities/rate-optimization/)
+- [AWS Compute Optimizer](https://docs.aws.amazon.com/compute-optimizer/latest/ug/view-ec2-recommendations.html)
+- [Azure Savings Plan recommendations](https://learn.microsoft.com/en-us/azure/cost-management-billing/savings-plan/purchase-recommendations)
+- [NVIDIA GPU Sharing](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html)
 
-1. 支持导入资源清单、使用记录、账单和 SLA；
-2. 系统推荐字段映射，用户确认后继续；
-3. 严重数据问题会阻断分析并提供修复建议；
-4. 输出成本基线、容量预测和至少三类优化建议；
-5. 每条建议包含证据、理论收益、风险和适用条件；
-6. 支持导出管理层摘要与行动清单；
-7. 客户数据不被公共演示环境保存；
-8. 核心口径与安全规则具有自动测试。
-
-当前已完成第 1—3 项的数据接入与审计闭环。下一产品里程碑是：只对审计通过的数据计算成本与容量基线。
-
-## 项目原则
-
-- 产品功能优先，求职展示由真实产品能力自然产生；
-- 第一版使用普通 CPU，不需要 GPU 或付费 VPS；
-- 不用学术版 Gurobi 部署收费服务；
-- 不把理论节省表述为已实现收益；
-- 不因低利用率直接建议回收高优先级或 SLA 保护资源。
-
-## 数据与安全边界
-
-- 当前版本在客户本机运行，不要求 GPU、VPS 或数据库；
-- 上传内容只存在于当前 Streamlit 会话，不写入仓库或本地数据目录；
-- 自动审计只读，不修改客户 CSV；
-- 有阻断项时，不应继续生成成本或容量建议；
-- 本项目不自动执行任何生产环境扩缩容或采购操作。
-
-## 开发验证
+## 验证
 
 ```powershell
 python -m unittest discover -s tests -v
 python -m compileall app.py src tests
 ```
+
+## 文档
+
+- [产品设计](docs/superpowers/specs/2026-09-09-gpu-optimize-design.md)
+- [容量阶段实施计划](docs/superpowers/plans/2026-09-09-gpu-optimize-capacity-phase.md)
+- [30 分钟客户试点](docs/GPU-Optimize-容量试点.md)
 
 ## License
 

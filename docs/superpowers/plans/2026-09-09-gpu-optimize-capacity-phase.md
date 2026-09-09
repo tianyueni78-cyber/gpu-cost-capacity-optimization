@@ -231,9 +231,10 @@ class ScenarioTest(unittest.TestCase):
     def test_compares_same_cost_basis(self):
         problem = CapacityInput(32, (TeamRequirement("search", 18, 20, 22),))
         rows = build_capacity_scenarios(problem, {"search": 32}, hourly_rate=3.0, hours=720)
-        lowest = next(row for row in rows if row["scenario"] == "最低成本")
-        self.assertEqual(lowest["released_gpu_count"], 10)
-        self.assertEqual(lowest["theoretical_savings_usd"], 21600.0)
+        lowest = next(row for row in rows if row["scenario"] == "安全释放")
+        self.assertEqual(lowest["reallocatable_gpu_count"], 10)
+        self.assertEqual(lowest["affected_cost_usd"], 21600.0)
+        self.assertEqual(lowest["theoretical_savings_usd"], 0.0)
         self.assertEqual(lowest["sla_shortfall_gpu_count"], 0)
 ```
 
@@ -245,7 +246,7 @@ Expected: `ModuleNotFoundError: No module named 'src.scenarios'`.
 
 - [ ] **Step 3: Implement same-basis comparison**
 
-Build plain dictionaries for `当前方案`, `最低成本`, and `低变更`. Calculate every scenario with the same `hourly_rate * hours` basis. The low-change scenario may release at most half of safe surplus; it must never reduce a team below `minimum_gpu_count`. Add `assumptions` stating that theoretical savings exclude taxes, exit fees, and unavailable discounts.
+Build plain dictionaries for `当前方案`, `安全释放`, and `低变更`. Calculate affected cost with the same `hourly_rate * hours` basis, but keep theoretical savings at zero until the procurement module verifies contract and rate effects. The low-change scenario may release at most half of safe surplus; it must never reduce a team below `minimum_gpu_count`.
 
 - [ ] **Step 4: Run focused and full tests**
 
@@ -280,9 +281,10 @@ from src.optimize_reporting import build_approval_report, scenarios_csv
 
 
 class ReportingTest(unittest.TestCase):
-    def test_report_marks_theoretical_savings_and_customer_decision(self):
-        report = build_approval_report({"period": "2026-08"}, [{"scenario": "最低成本", "theoretical_savings_usd": 21600}], ["20% 备用容量"])
-        self.assertIn("理论节省", report)
+    def test_report_marks_cost_scope_and_customer_decision(self):
+        report = build_approval_report({"period": "2026-08"}, [{"scenario": "安全释放", "affected_cost_usd": 21600, "theoretical_savings_usd": 0}], ["20% 备用容量"])
+        self.assertIn("受影响成本", report)
+        self.assertIn("不是已验证节省", report)
         self.assertIn("客户负责人审批", report)
         self.assertNotIn("自动执行", report)
 
