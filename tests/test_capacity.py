@@ -6,6 +6,7 @@ from src.capacity import (
     CapacityInput,
     TeamRequirement,
     build_capacity_input,
+    peak_demands,
     solve_capacity,
     validate_capacity_input,
 )
@@ -38,6 +39,16 @@ class CapacityInputTest(unittest.TestCase):
         )
 
         self.assertIn("至少确认一个团队需求", validate_capacity_input(problem))
+
+    def test_peak_demands_falls_back_to_inventory_team(self):
+        inventory = pd.DataFrame([
+            {"resource_pool_id": "p1", "team_id": "search"},
+        ])
+        usage = pd.DataFrame([
+            {"resource_pool_id": "p1", "team_id": None, "active_gpu_count": 18},
+        ])
+
+        self.assertEqual(peak_demands(inventory, usage), {"search": 18})
 
     def test_solver_keeps_required_capacity_and_releases_surplus(self):
         problem = CapacityInput(

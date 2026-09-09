@@ -31,6 +31,18 @@ class CapacitySolution:
     conflicts: tuple[str, ...]
 
 
+def peak_demands(inventory: pd.DataFrame, usage: pd.DataFrame) -> dict[str, int]:
+    usage = usage.copy()
+    if "team_id" not in usage or usage["team_id"].isna().all():
+        usage = usage.drop(columns=["team_id"], errors="ignore").merge(
+            inventory[["resource_pool_id", "team_id"]],
+            on="resource_pool_id",
+            how="left",
+        )
+    active = pd.to_numeric(usage["active_gpu_count"], errors="coerce").fillna(0)
+    return active.groupby(usage["team_id"]).max().astype(int).to_dict()
+
+
 def build_capacity_input(
     tables: dict[str, pd.DataFrame], confirmed_demands: dict[str, int]
 ) -> CapacityInput:

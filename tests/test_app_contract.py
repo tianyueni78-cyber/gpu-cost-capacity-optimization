@@ -1,6 +1,8 @@
 import unittest
 
-from src.workflow import ready_for_audit
+import pandas as pd
+
+from src.workflow import ready_for_audit, ready_for_optimization
 
 
 class WorkflowContractTest(unittest.TestCase):
@@ -9,6 +11,13 @@ class WorkflowContractTest(unittest.TestCase):
         self.assertTrue(ready_for_audit(complete, {}))
         self.assertFalse(ready_for_audit({"inventory": object()}, {}))
         self.assertFalse(ready_for_audit(complete, {"billing": ["缺少净成本"]}))
+
+    def test_optimization_requires_clean_audit_and_confirmed_constraints(self):
+        self.assertFalse(ready_for_optimization(None, False))
+        clean = pd.DataFrame([{"status": "通过", "severity": "阻断"}])
+        blocked = pd.DataFrame([{"status": "异常", "severity": "阻断"}])
+        self.assertTrue(ready_for_optimization(clean, True))
+        self.assertFalse(ready_for_optimization(blocked, True))
 
 
 if __name__ == "__main__":
