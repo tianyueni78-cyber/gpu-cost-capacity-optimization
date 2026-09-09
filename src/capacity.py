@@ -20,6 +20,7 @@ class ResourcePool:
     gpu_count: int
     hourly_rate_usd: float
     sharing_scope: str
+    sharing_confirmed: bool = False
 
     @property
     def scope(self) -> tuple[str, str]:
@@ -92,6 +93,7 @@ def build_capacity_input(
             int(row.gpu_count),
             float(row.effective_hourly_rate_usd),
             sharing_scopes.get(str(row.resource_pool_id).strip(), "none"),
+            str(row.resource_pool_id).strip() in sharing_scopes,
         )
         for row in inventory.itertuples(index=False)
     )
@@ -163,7 +165,8 @@ def solve_capacity(problem: CapacityInput) -> CapacitySolution:
         if scope_has_conflict:
             continue
 
-        teams = [item.team_id for item in requirements]
+        teams = sorted({item.team_id for item in requirements} | {pool.team_id for pool in pools})
+        confirmed_teams = {item.team_id for item in requirements}
         variables = [
             (pool, team)
             for pool in pools
@@ -178,7 +181,7 @@ def solve_capacity(problem: CapacityInput) -> CapacitySolution:
         constraints = []
         for pool in pools:
             row = np.array([1.0 if item_pool == pool else 0.0 for item_pool, _ in variables])
-            if pool.sharing_scope == "none":
+            if pool.sharing_scope == "none" or pool.team_id not in confirmed_teams:
                 constraints.append(LinearConstraint(row, pool.gpu_count, pool.gpu_count))
             else:
                 constraints.append(LinearConstraint(row, 0, pool.gpu_count))

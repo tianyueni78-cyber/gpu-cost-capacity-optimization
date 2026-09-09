@@ -116,6 +116,18 @@ class CapacityInputTest(unittest.TestCase):
         self.assertEqual(result.status, "infeasible")
         self.assertTrue(any(item.resource_pool_id == "h" for item in result.adjustments))
 
+    def test_pool_without_confirmed_demand_stays_unchanged(self):
+        source = tables([
+            {"resource_pool_id": "h", "team_id": "search", "gpu_model": "H100", "region": "us", "gpu_count": 6, "effective_hourly_rate_usd": 4},
+        ])
+        problem = build_capacity_input(source, {}, {"h": "cross_team"})
+
+        result = solve_capacity(problem)
+        adjustment = result.adjustments[0]
+
+        self.assertEqual(adjustment.retained_gpu_count, 6)
+        self.assertEqual(adjustment.releasable_gpu_count, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

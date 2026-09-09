@@ -1,23 +1,29 @@
-"""GPU Optimize 审批摘要与方案 CSV。"""
+"""GPU Optimize 审批报告与 Excel 兼容 CSV。"""
 
 import pandas as pd
 
 
 def build_approval_report(
-    scope: dict, scenarios: list[dict], constraints: list[str]
+    scope: dict,
+    scenarios: list[dict],
+    constraints: list[str],
+    recommendations: list[dict] | None = None,
+    pool_adjustments: list[dict] | None = None,
 ) -> str:
+    recommendations = recommendations or []
+    pool_adjustments = pool_adjustments or []
     lines = [
         "# GPU Optimize 容量方案",
         "",
         "## 决策范围",
         "",
-        f"- 分析期间：{scope.get('period', '未提供')}",
+        f"- 观察期间：{scope.get('period', '未提供')}",
         "- 本报告只覆盖容量分配，不执行生产变更。",
         "",
-        "## 已确认约束",
+        "## 约束快照",
         "",
     ]
-    lines.extend(f"- {constraint}" for constraint in constraints)
+    lines.extend(f"- {item}" for item in constraints)
     lines.extend(["", "## 方案比较", ""])
     for row in scenarios:
         lines.extend([
@@ -27,10 +33,24 @@ def build_approval_report(
             f"- 理论节省：${float(row.get('theoretical_savings_usd', 0)):,.2f}",
             "",
         ])
+    lines.extend(["## 建议证据", ""])
+    for item in recommendations:
+        lines.extend([
+            f"### {item['recommendation_id']}｜{item['status']}",
+            "",
+            f"- 受影响资源：{item['affected_resources']}",
+            f"- SLA 风险：{item['sla_risk']}",
+            f"- 负责人问题：{item['owner_question']}",
+            "",
+        ])
     lines.extend([
-        "## 风险与假设",
+        "## 资源池调整明细",
         "",
-        "受影响成本不是已验证节省。采购合同、退出费用和实际费率需由采购优化阶段复核。",
+        f"共 {len(pool_adjustments)} 条资源池调整记录，详见导出 CSV。",
+        "",
+        "## 风险与限制",
+        "",
+        "受影响成本不是已验证节省。采购合同、退出费用和实际折扣需由采购优化阶段复核。",
         "",
         "## 验证与回滚",
         "",
@@ -43,5 +63,8 @@ def build_approval_report(
     return "\n".join(lines)
 
 
-def scenarios_csv(scenarios: list[dict]) -> bytes:
-    return pd.DataFrame(scenarios).to_csv(index=False).encode("utf-8-sig")
+def rows_csv(rows: list[dict]) -> bytes:
+    return pd.DataFrame(rows).to_csv(index=False).encode("utf-8-sig")
+
+
+scenarios_csv = rows_csv

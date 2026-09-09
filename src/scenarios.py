@@ -1,53 +1,82 @@
-"""把容量求解结果转换成可比较、不过度承诺的方案。"""
+"""从资源池调整明细汇总容量方案与成本口径。"""
 
-from src.capacity import CapacityInput, solve_capacity
-
-
-def _row(
-    scenario: str,
-    allocated: int,
-    reallocatable: int,
-    affected_cost: float,
-    shortfall: int = 0,
-) -> dict:
-    return {
-        "scenario": scenario,
-        "allocated_gpu_count": allocated,
-        "reallocatable_gpu_count": reallocatable,
-        "affected_cost_usd": affected_cost,
-        "theoretical_savings_usd": 0.0,
-        "sla_shortfall_gpu_count": shortfall,
-        "assumption": "容量调整本身不等于账单节省；采购模块验证合同和费率后才能计算节省。",
-    }
+from src.capacity import CapacityInput, CapacitySolution
 
 
 def build_capacity_scenarios(
-    problem: CapacityInput, hourly_rate: float, hours: int
-) -> list[dict]:
-    current = sum(problem.current_allocations.values()) or problem.total_gpu_count
-    rows = [_row("当前方案", current, 0, 0.0)]
-    solution = solve_capacity(problem)
-    if solution.status != "optimal":
-        shortfall = max(
-            0,
-            sum(team.minimum_gpu_count for team in problem.teams)
-            - problem.total_gpu_count,
+    problem: CapacityInput,
+    solution: CapacitySolution,
+    period_hours: int,
+) -> dict[str, list[dict]]:
+    pools = {pool.resource_pool_id: pool for pool in problem.pools}
+    details = []
+    for adjustment in solution.adjustments:
+        pool = pools[adjustment.resource_pool_id]
+        affected_cost = round(
+            adjustment.releasable_gpu_count
+            * pool.hourly_rate_usd
+            * int(period_hours),
+            2,
         )
-        rows.append(_row("无可行方案", current, 0, 0.0, shortfall))
-        return rows
+        details.append({
+            "resource_pool_id": pool.resource_pool_id,
+            "team_id": pool.team_id,
+            "gpu_model": pool.gpu_model,
+            "region": pool.region,
+            "current_gpu_count": pool.gpu_count,
+            "retained_gpu_count": adjustment.retained_gpu_count,
+            "cross_team_shared_gpu_count": adjustment.cross_team_shared_gpu_count,
+            "releasable_gpu_count": adjustment.releasable_gpu_count,
+            "hourly_rate_usd": pool.hourly_rate_usd,
+            "affected_cost_usd": affected_cost,
+            "sharing_scope": pool.sharing_scope,
+            "solver_status": solution.status,
+        })
 
-    reallocatable = solution.shared_gpu_count
-    retained = sum(solution.team_allocations.values())
-    affected_cost = round(reallocatable * float(hourly_rate) * int(hours), 2)
-    rows.append(_row("安全释放", retained, reallocatable, affected_cost))
-
-    low_change = reallocatable // 2
-    rows.append(
-        _row(
-            "低变更",
-            problem.total_gpu_count - low_change,
-            low_change,
-            round(low_change * float(hourly_rate) * int(hours), 2),
-        )
+    current_count = sum(pool.gpu_count for pool in problem.pools)
+    safe_releasable = sum(row["releasable_gpu_count"] for row in details)
+    safe_cost = round(sum(row["affected_cost_usd"] for row in details), 2)
+    shortfall = sum(
+        int(part.split("缺少 ", 1)[1].split(" ", 1)[0])
+        for part in solution.conflicts
+        if "缺少 " in part
     )
-    return rows
+    scenarios = [
+        {
+            "scenario": "当前方案",
+            "allocated_gpu_count": current_count,
+            "reallocatable_gpu_count": 0,
+            "affected_cost_usd": 0.0,
+            "theoretical_savings_usd": 0.0,
+            "sla_shortfall_gpu_count": shortfall,
+        }
+    ]
+    if details:
+        scenarios.append({
+            "scenario": "安全调整",
+            "allocated_gpu_count": current_count - safe_releasable,
+            "reallocatable_gpu_count": safe_releasable,
+            "affected_cost_usd": safe_cost,
+            "theoretical_savings_usd": 0.0,
+            "sla_shortfall_gpu_count": shortfall,
+        })
+        low_change_count = safe_releasable // 2
+        ratio = low_change_count / safe_releasable if safe_releasable else 0
+        scenarios.append({
+            "scenario": "低变更",
+            "allocated_gpu_count": current_count - low_change_count,
+            "reallocatable_gpu_count": low_change_count,
+            "affected_cost_usd": round(safe_cost * ratio, 2),
+            "theoretical_savings_usd": 0.0,
+            "sla_shortfall_gpu_count": shortfall,
+        })
+    elif solution.status == "infeasible":
+        scenarios.append({
+            "scenario": "无可行方案",
+            "allocated_gpu_count": current_count,
+            "reallocatable_gpu_count": 0,
+            "affected_cost_usd": 0.0,
+            "theoretical_savings_usd": 0.0,
+            "sla_shortfall_gpu_count": shortfall,
+        })
+    return {"scenarios": scenarios, "pool_adjustments": details}
