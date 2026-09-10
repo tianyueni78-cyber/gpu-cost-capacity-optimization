@@ -1,0 +1,2 @@
+action_id,resource_pool_ids,period_start,period_end,currency,cost_basis,volume_unit,variable_cost_usd,fixed_cost_usd,business_volume,availability_pct,p95_latency_ms,queue_time_seconds,failure_rate_pct,spare_capacity_pct
+ACT-001,GPU-001,2026-07-01,2026-07-31,USD,EFFECTIVE_COST,requests,8000,2000,1000,99.95,180,4,0.2,20
