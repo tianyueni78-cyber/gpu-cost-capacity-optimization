@@ -42,11 +42,11 @@
 
 ## Unresolved
 
-- GPU Improve 正式规格已完成，尚未编写实施计划或应用代码。
+- GPU Improve 正式规格和九任务实施计划已完成，尚未编写应用代码。
 - GPU Forecast 尚未设计和开发可运行应用。
 - GPU Optimize 的采购组合与运行配置功能尚未完成。
 - 功能分支和工作树暂时保留；主线稳定后再决定是否删除。
 
 ## Next Concrete Action
 
-请用户评审 `gpu-improve/正式规格.md`；确认无修改后，使用 writing-plans skill 创建实施计划。
+由用户选择执行方式后，按 `gpu-improve/实施计划.md` 从任务 1 开始测试优先开发。
