@@ -46,6 +46,7 @@ class SchemaSecurityTest(unittest.TestCase):
 
         self.assertIn("auth.uid()", sql)
         self.assertIn("prevent_baseline_mutation", sql)
+        self.assertIn("foreign key (action_id, project_id)", sql)
 
 
 class StorageContractTest(unittest.TestCase):

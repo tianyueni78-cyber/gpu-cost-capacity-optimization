@@ -103,6 +103,15 @@ class BenefitVerificationTest(unittest.TestCase):
         self.assertEqual(result.outcome, "UNVERIFIABLE")
         self.assertIn("型号替换缺少性能证据", result.reasons)
 
+    def test_gpu_migration_rejects_material_throughput_regression(self):
+        post = snapshot(
+            period_start=date(2026, 9, 1), period_end=date(2026, 10, 1),
+            throughput_per_second=1,
+        )
+        result = verify_benefit(action(ActionType.GPU_MIGRATION), baseline(), post, ALLOWED)
+        self.assertEqual(result.outcome, "UNVERIFIABLE")
+        self.assertIn("型号替换性能不可比", result.reasons)
+
     def test_scheduling_uses_unit_cost_when_operational_metrics_exist(self):
         post = snapshot(
             period_start=date(2026, 9, 1),

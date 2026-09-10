@@ -15,46 +15,51 @@ create table actions (
   owner text not null,
   status text not null,
   payload jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (action_id, project_id)
 );
 
 create table action_events (
   event_id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(project_id) on delete cascade,
-  action_id text not null references actions(action_id),
+  action_id text not null,
   from_status text,
   to_status text not null,
   changed_at timestamptz not null default now(),
-  note text
+  note text,
+  foreign key (action_id, project_id) references actions(action_id, project_id)
 );
 
 create table baselines (
   baseline_id uuid primary key,
   project_id uuid not null references projects(project_id) on delete cascade,
-  action_id text not null references actions(action_id),
+  action_id text not null,
   source_sha256 text not null,
   frozen_at timestamptz not null,
-  payload jsonb not null
+  payload jsonb not null,
+  foreign key (action_id, project_id) references actions(action_id, project_id)
 );
 
 create table measurements (
   measurement_id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(project_id) on delete cascade,
-  action_id text not null references actions(action_id),
+  action_id text not null,
   period_start date not null,
   period_end date not null,
   payload jsonb not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  foreign key (action_id, project_id) references actions(action_id, project_id)
 );
 
 create table benefit_results (
   result_id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(project_id) on delete cascade,
-  action_id text not null references actions(action_id),
+  action_id text not null,
   outcome text not null,
   evidence_grade text not null,
   payload jsonb not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  foreign key (action_id, project_id) references actions(action_id, project_id)
 );
 
 create or replace function project_owned(target_project uuid)

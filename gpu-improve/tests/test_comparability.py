@@ -43,6 +43,20 @@ class BaselineTest(unittest.TestCase):
 
 
 class ComparabilityTest(unittest.TestCase):
+    def test_execution_must_fall_between_baseline_and_post_period(self):
+        from src.models import ActionRecord, ActionType
+
+        version = freeze_baseline(
+            snapshot(), frozen_at=datetime(2026, 8, 1, tzinfo=timezone.utc)
+        )
+        action = ActionRecord(
+            "ACT-001", ActionType.RIGHTSIZE, "GPU-001", "owner",
+            date(2026, 6, 1), date(2026, 6, 15), 100, 0,
+        )
+        post = snapshot(period_start=date(2026, 9, 1), period_end=date(2026, 10, 1))
+        result = check_comparability(version, post, action)
+        self.assertFalse(result.allowed)
+        self.assertIn("执行日期不在基线与行动后观察期之间", result.blocking_reasons)
     def setUp(self):
         self.baseline = freeze_baseline(
             snapshot(),

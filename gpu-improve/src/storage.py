@@ -25,6 +25,12 @@ class SupabaseStore:
             "projects", {"name": name, "owner_id": self.user_id}, allow_owner=True
         )
 
+    def list_projects(self):
+        try:
+            return self.client.table("projects").select("*").execute().data
+        except Exception:
+            raise StorageError("数据库操作失败，请检查连接和权限") from None
+
     def save_action(self, project_id: str, payload: dict):
         return self._insert("actions", {**payload, "project_id": project_id})
 
@@ -39,6 +45,15 @@ class SupabaseStore:
 
     def save_benefit_result(self, project_id: str, payload: dict):
         return self._insert("benefit_results", {**payload, "project_id": project_id})
+
+    def update_action_status(self, project_id: str, action_id: str, status: str):
+        try:
+            return (
+                self.client.table("actions").update({"status": status})
+                .eq("project_id", project_id).eq("action_id", action_id).execute().data
+            )
+        except Exception:
+            raise StorageError("数据库操作失败，请检查连接和权限") from None
 
     def list_rows(self, table: str, project_id: str):
         allowed = {

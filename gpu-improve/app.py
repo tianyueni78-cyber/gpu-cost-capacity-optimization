@@ -8,20 +8,22 @@ import pandas as pd
 import streamlit as st
 
 from src.action_io import read_actions_csv
-from src.benefits import verify_benefit
+from src.benefits import BenefitResult, verify_benefit
 from src.comparability import check_comparability
 from src.guards import SideEffectThresholds, evaluate_side_effects, finalize_result
 from src.measurement import MetricSnapshot, freeze_baseline
+from src.lifecycle import ALLOWED_TRANSITIONS, transition_action
 from src.models import ActionRecord, ActionStatus, ActionType
 from src.reporting import build_ledger, export_csv_bytes, render_executive_report
-from src.workflow import can_verify, persist_then_export
+from src.storage import SupabaseStore
+from src.workflow import can_verify, database_configured, read_metric_snapshot
 
 
 PAGES = ("行动导入", "执行台账", "收益验证", "收益复盘")
 
 
 def _database_configured():
-    return bool(st.secrets.get("SUPABASE_URL") and st.secrets.get("SUPABASE_ANON_KEY"))
+    return database_configured(st.secrets)
 
 
 def _require_login():
@@ -30,6 +32,31 @@ def _require_login():
         return
     if st.session_state.get("authenticated"):
         st.success("已登录，项目台账可持久保存。")
+        if "store" not in st.session_state:
+            store = SupabaseStore(st.session_state["supabase_client"], st.session_state["user_id"])
+            projects = store.list_projects()
+            project = projects or store.create_project("GPU Improve")
+            st.session_state["store"] = store
+            st.session_state["project_id"] = project[0]["project_id"]
+            rows = store.list_rows("actions", st.session_state["project_id"])
+            st.session_state["improve_actions"] = [
+                ActionRecord(
+                    action_id=row["payload"]["action_id"],
+                    action_type=ActionType(row["payload"]["action_type"]),
+                    resource_pool_id=row["payload"]["resource_pool_id"],
+                    owner=row["payload"]["owner"],
+                    approved_at=date.fromisoformat(row["payload"]["approved_at"]),
+                    planned_execution_at=date.fromisoformat(row["payload"]["planned_execution_at"]),
+                    estimated_savings_usd=float(row["payload"]["estimated_savings_usd"]),
+                    implementation_cost_usd=float(row["payload"]["implementation_cost_usd"]),
+                    status=ActionStatus(row["status"]),
+                ) for row in rows
+            ]
+            result_rows = store.list_rows("benefit_results", st.session_state["project_id"])
+            st.session_state["benefit_results"] = [
+                BenefitResult(**{**row["payload"], "reasons": tuple(row["payload"].get("reasons", ()))})
+                for row in result_rows
+            ]
         return
     from supabase import create_client
 
@@ -52,29 +79,19 @@ def _require_login():
 def _initial_state():
     st.session_state.setdefault("improve_actions", [])
     st.session_state.setdefault("benefit_results", [])
+    st.session_state.setdefault("action_events", [])
 
 
-def _demo_snapshot(action_id: str, post: bool = False):
-    return MetricSnapshot(
-        action_id=action_id,
-        resource_pool_ids=("GPU-001",),
-        period_start=date(2026, 9, 1) if post else date(2026, 7, 1),
-        period_end=date(2026, 10, 1) if post else date(2026, 7, 31),
-        currency="USD",
-        cost_basis="EFFECTIVE_COST",
-        volume_unit="requests",
-        variable_cost_usd=7000 if post else 8000,
-        fixed_cost_usd=2000,
-        business_volume=1000,
-        availability_pct=99.95,
-        p95_latency_ms=180,
-        queue_time_seconds=4,
-        failure_rate_pct=0.2,
-        spare_capacity_pct=20,
-        throughput_per_second=500,
-        on_demand_equivalent_cost_usd=11000,
-        planned_purchase_cost_usd=12000 if post else 20000,
-    )
+def _store():
+    return st.session_state.get("store")
+
+
+def _record_payload(item):
+    payload = asdict(item)
+    return {
+        key: value.value if hasattr(value, "value") else value.isoformat() if hasattr(value, "isoformat") else value
+        for key, value in payload.items()
+    }
 
 
 def render_import():
@@ -91,6 +108,17 @@ def render_import():
             st.session_state["improve_actions"].extend(
                 item for item in parsed.records if item.action_id not in existing
             )
+            if _store():
+                for item in parsed.records:
+                    payload = _record_payload(item)
+                    _store().save_action(st.session_state["project_id"], {
+                        "action_id": item.action_id,
+                        "action_type": item.action_type.value,
+                        "resource_pool_id": item.resource_pool_id,
+                        "owner": item.owner,
+                        "status": item.status.value,
+                        "payload": payload,
+                    })
             st.success(f"已导入 {len(parsed.records)} 项行动。")
     st.download_button(
         "下载标准模板",
@@ -110,13 +138,32 @@ def render_ledger():
     frame = pd.DataFrame(asdict(item) for item in actions)
     st.dataframe(frame, use_container_width=True, hide_index=True)
     selected = st.selectbox("选择行动", [item.action_id for item in actions])
-    status = st.selectbox("推进到", [item.value for item in ActionStatus])
+    current = next(item for item in actions if item.action_id == selected)
+    targets = sorted(ALLOWED_TRANSITIONS.get(current.status, ()), key=lambda item: item.value)
+    if not targets:
+        st.info("该行动已处于终态，不能继续推进。")
+        return
+    status = st.selectbox("推进到", [item.value for item in targets])
+    note = st.text_input("变更说明")
     if st.button("记录状态变化"):
+        event = transition_action(
+            current.status, ActionStatus(status), current.owner,
+            datetime.now(timezone.utc), note,
+        )
         st.session_state["improve_actions"] = [
             replace(item, status=ActionStatus(status)) if item.action_id == selected else item
             for item in actions
         ]
-        st.success("状态已记录；数据库模式下应同时追加不可变事件。")
+        st.session_state["action_events"].append(event)
+        if _store():
+            project_id = st.session_state["project_id"]
+            _store().append_event(project_id, {
+                "action_id": selected, "from_status": event.from_status.value,
+                "to_status": event.to_status.value, "changed_at": event.occurred_at.isoformat(),
+                "note": event.note,
+            })
+            _store().update_action_status(project_id, selected, event.to_status.value)
+        st.success("状态已推进，并追加不可变事件。")
 
 
 def render_verification():
@@ -127,10 +174,19 @@ def render_verification():
         return
     selected_id = st.selectbox("待验证行动", [item.action_id for item in actions])
     action = next(item for item in actions if item.action_id == selected_id)
-    before = _demo_snapshot(selected_id)
-    post = _demo_snapshot(selected_id, post=True)
+    baseline_file = st.file_uploader("上传基线指标 CSV", type=["csv"], key="baseline_metrics")
+    post_file = st.file_uploader("上传行动后指标 CSV", type=["csv"], key="post_metrics")
+    if not baseline_file or not post_file:
+        st.info("请上传两份一行汇总指标。可使用 examples 中的样例文件。")
+        return
+    try:
+        before = read_metric_snapshot(baseline_file.getvalue(), selected_id)
+        post = read_metric_snapshot(post_file.getvalue(), selected_id)
+    except (ValueError, KeyError, TypeError) as exc:
+        st.error(f"指标文件无效：{exc}")
+        return
     baseline = freeze_baseline(before, datetime.now(timezone.utc))
-    comparability = check_comparability(baseline, post)
+    comparability = check_comparability(baseline, post, action)
     if not can_verify(comparability):
         st.error("验证被阻断：" + "；".join(comparability.blocking_reasons))
         return
@@ -142,6 +198,21 @@ def render_verification():
         st.session_state["benefit_results"] = [
             item for item in st.session_state["benefit_results"] if item.action_id != selected_id
         ] + [result]
+        if _store():
+            project_id = st.session_state["project_id"]
+            _store().save_baseline(project_id, {
+                "baseline_id": baseline.baseline_id, "action_id": selected_id,
+                "source_sha256": baseline.source_sha256,
+                "frozen_at": baseline.frozen_at.isoformat(), "payload": _record_payload(before),
+            })
+            _store().save_measurement(project_id, {
+                "action_id": selected_id, "period_start": post.period_start.isoformat(),
+                "period_end": post.period_end.isoformat(), "payload": _record_payload(post),
+            })
+            _store().save_benefit_result(project_id, {
+                "action_id": selected_id, "outcome": result.outcome,
+                "evidence_grade": result.evidence_grade, "payload": _record_payload(result),
+            })
         st.success(f"结论：{result.outcome}；已验证收益 ${result.realized_savings_usd:,.2f}")
 
 

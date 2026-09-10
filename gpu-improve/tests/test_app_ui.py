@@ -8,12 +8,16 @@ class AppUiTest(unittest.TestCase):
         self.assertIn("本地演示模式", source)
         self.assertIn("原始账单和使用 CSV 不上传数据库", source)
         self.assertIn("SUPABASE_ANON_KEY", source)
+        self.assertIn("SupabaseStore", source)
 
     def test_ui_uses_domain_functions(self):
         source = Path("app.py").read_text(encoding="utf-8")
         self.assertIn("verify_benefit", source)
         self.assertIn("check_comparability", source)
         self.assertIn("build_ledger", source)
+        self.assertIn("transition_action", source)
+        self.assertIn("上传基线指标 CSV", source)
+        self.assertIn("上传行动后指标 CSV", source)
 
 
 if __name__ == "__main__":

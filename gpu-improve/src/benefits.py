@@ -64,6 +64,8 @@ def verify_benefit(
     elif action.action_type == ActionType.GPU_MIGRATION:
         if before.throughput_per_second is None or post.throughput_per_second is None:
             return _unverifiable(action, ("型号替换缺少性能证据",))
+        if post.throughput_per_second < before.throughput_per_second * 0.95:
+            return _unverifiable(action, ("型号替换性能不可比",))
         method = "COMPARABLE_WORKLOAD_AND_PERFORMANCE"
         counterfactual = _normalized_counterfactual(before, post)
     elif action.action_type == ActionType.SCHEDULING:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from .measurement import BaselineVersion, MetricSnapshot
+from .models import ActionRecord
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,7 @@ class ComparabilityResult:
 def check_comparability(
     baseline: BaselineVersion,
     post: MetricSnapshot,
+    action: ActionRecord | None = None,
 ) -> ComparabilityResult:
     before = baseline.snapshot
     blocking: list[str] = []
@@ -36,6 +38,10 @@ def check_comparability(
         blocking.append("观察期间长度不一致")
     if post.period_start <= before.period_end:
         blocking.append("行动前后观察期间重叠")
+    if action is not None and not (
+        before.period_end < action.planned_execution_at < post.period_start
+    ):
+        blocking.append("执行日期不在基线与行动后观察期之间")
 
     if baseline.baseline_method == "HISTORICAL_AVERAGE":
         if not baseline.history_is_stable:
