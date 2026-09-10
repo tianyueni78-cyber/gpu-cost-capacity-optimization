@@ -2,14 +2,15 @@
 
 ## Current Goal
 
-完成 GPU Improve 的正式设计评审，再制定实施计划并按测试优先开发；每个平台保持独立运行、独立测试和独立部署。
+完成 GPU Improve 可运行 MVP 并通过端到端验收；每个平台保持独立运行、独立测试和独立部署。
 
 ## Completed and Validated
 
 - 仓库已重构为四个产品目录：`gpu-data/`、`gpu-optimize/`、`gpu-improve/`、`gpu-forecast/`。
 - GPU Data 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；29 项测试、Python 编译和 Streamlit 健康检查通过。
 - GPU Optimize 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；38 项测试、Python 编译和 Streamlit 健康检查通过。
-- GPU Improve 与 GPU Forecast 已建立独立产品目录，README 明确标记为待开发，没有用空壳页面伪装成已完成功能。
+- GPU Improve 已实现行动导入、执行台账、收益验证和收益复盘四页流程，并具备 Supabase RLS 数据契约。
+- GPU Forecast 已建立独立产品目录，README 明确标记为待开发，没有用空壳页面伪装成已完成功能。
 - 根目录旧版 `app.py`、`src/`、`tests/`、统一 `requirements.txt` 已删除，其功能已由两个独立平台目录承接。
 - 过程性 `docs/` 已从当前主线移除；永久文档整理为根目录 `产品设计.md` 和 `四平台正式规格.md`。
 - 根 `README.md` 已更新为四平台导航、真实完成状态、运行方式和在线案例入口。
@@ -42,11 +43,11 @@
 
 ## Unresolved
 
-- GPU Improve 正式规格和九任务实施计划已完成，尚未编写应用代码。
+- GPU Improve 的生产 Supabase 项目、正式部署和企业系统集成尚未实施。
 - GPU Forecast 尚未设计和开发可运行应用。
 - GPU Optimize 的采购组合与运行配置功能尚未完成。
 - 功能分支和工作树暂时保留；主线稳定后再决定是否删除。
 
 ## Next Concrete Action
 
-由用户选择执行方式后，按 `gpu-improve/实施计划.md` 从任务 1 开始测试优先开发。
+完成 GPU Improve 分支验收并合入 `main`，随后设计 GPU Forecast。
