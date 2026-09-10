@@ -1,0 +1,2 @@
+action_id,action_type,resource_pool_id,owner,approved_at,planned_execution_at,estimated_savings_usd,implementation_cost_usd
+ACT-001,RIGHTSIZE,GPU-001,ops@example.com,2026-08-01,2026-08-10,1200,100
