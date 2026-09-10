@@ -22,6 +22,9 @@ class MetricSnapshot:
     queue_time_seconds: float | None = None
     failure_rate_pct: float | None = None
     spare_capacity_pct: float | None = None
+    throughput_per_second: float | None = None
+    on_demand_equivalent_cost_usd: float | None = None
+    planned_purchase_cost_usd: float | None = None
 
     def __post_init__(self):
         if self.period_end < self.period_start:
@@ -31,6 +34,13 @@ class MetricSnapshot:
         for value in (self.variable_cost_usd, self.fixed_cost_usd, self.business_volume):
             if value < 0:
                 raise ValueError("成本和业务量不能小于零")
+        optional_nonnegative = (
+            self.throughput_per_second,
+            self.on_demand_equivalent_cost_usd,
+            self.planned_purchase_cost_usd,
+        )
+        if any(value is not None and value < 0 for value in optional_nonnegative):
+            raise ValueError("性能和对照成本不能小于零")
 
     @property
     def effective_cost_usd(self) -> float:
