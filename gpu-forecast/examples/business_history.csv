@@ -1,0 +1,13 @@
+period,team_id,workload_type,gpu_model,region,business_volume,volume_unit,event_flag
+2025-01-01,TEAM-A,Inference,H100-80GB,cn-east-1,1000000,requests,false
+2025-02-01,TEAM-A,Inference,H100-80GB,cn-east-1,1040000,requests,false
+2025-03-01,TEAM-A,Inference,H100-80GB,cn-east-1,1080000,requests,false
+2025-04-01,TEAM-A,Inference,H100-80GB,cn-east-1,1120000,requests,false
+2025-05-01,TEAM-A,Inference,H100-80GB,cn-east-1,1160000,requests,false
+2025-06-01,TEAM-A,Inference,H100-80GB,cn-east-1,1200000,requests,false
+2025-07-01,TEAM-A,Inference,H100-80GB,cn-east-1,1240000,requests,false
+2025-08-01,TEAM-A,Inference,H100-80GB,cn-east-1,1280000,requests,false
+2025-09-01,TEAM-A,Inference,H100-80GB,cn-east-1,1320000,requests,false
+2025-10-01,TEAM-A,Inference,H100-80GB,cn-east-1,1500000,requests,true
+2025-11-01,TEAM-A,Inference,H100-80GB,cn-east-1,1400000,requests,false
+2025-12-01,TEAM-A,Inference,H100-80GB,cn-east-1,1440000,requests,false

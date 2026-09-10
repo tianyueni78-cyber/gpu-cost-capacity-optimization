@@ -1,0 +1,2 @@
+resource_pool_id,team_id,gpu_model,region,gpu_count,procurement_model,start_date,end_date
+GPU-001,TEAM-A,H100-80GB,cn-east-1,8,OnDemand,2024-01-01,

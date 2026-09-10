@@ -1,0 +1,2 @@
+team_id,workload_type,gpu_model,region,productivity_per_gpu,sla_safety_factor,min_spare_capacity_pct
+TEAM-A,Inference,H100-80GB,cn-east-1,200000,1.10,10
