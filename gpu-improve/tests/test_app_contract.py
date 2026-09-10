@@ -2,10 +2,14 @@ from pathlib import Path
 import unittest
 
 from src.comparability import ComparabilityResult
-from src.workflow import can_verify, database_configured, persist_then_export, read_metric_snapshot
+from src.workflow import can_verify, current_actor, database_configured, persist_then_export, read_metric_snapshot
 
 
 class AppContractTest(unittest.TestCase):
+    def test_actor_is_authenticated_user_not_action_owner(self):
+        self.assertEqual(current_actor({"user_id": "USER-A"}), "USER-A")
+        self.assertEqual(current_actor({}), "local-demo-user")
+
     def test_missing_secrets_enters_demo_mode(self):
         class MissingSecrets:
             def get(self, key):

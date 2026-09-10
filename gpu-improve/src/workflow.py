@@ -14,6 +14,10 @@ def database_configured(secrets) -> bool:
         return False
 
 
+def current_actor(session_state) -> str:
+    return str(session_state.get("user_id") or "local-demo-user")
+
+
 def can_verify(comparability: ComparabilityResult) -> bool:
     return comparability.allowed and not comparability.blocking_reasons
 

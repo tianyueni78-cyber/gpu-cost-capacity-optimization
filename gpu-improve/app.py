@@ -16,7 +16,7 @@ from src.lifecycle import ALLOWED_TRANSITIONS, ActionEvent, transition_action
 from src.models import ActionRecord, ActionStatus, ActionType
 from src.reporting import build_ledger, export_csv_bytes, render_executive_report
 from src.storage import SupabaseStore
-from src.workflow import can_verify, database_configured, read_metric_snapshot
+from src.workflow import can_verify, current_actor, database_configured, read_metric_snapshot
 
 
 PAGES = ("行动导入", "执行台账", "收益验证", "收益复盘")
@@ -168,7 +168,7 @@ def render_ledger():
     event_date = st.date_input("实际发生日期", value=date.today())
     if st.button("记录状态变化"):
         event = transition_action(
-            current.status, ActionStatus(status), current.owner,
+            current.status, ActionStatus(status), current_actor(st.session_state),
             datetime.combine(event_date, datetime.min.time(), timezone.utc), note,
         )
         st.session_state["improve_actions"] = [
