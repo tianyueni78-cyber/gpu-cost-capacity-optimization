@@ -9,7 +9,7 @@
 | GPU Data | 数据是否可信，钱花在哪里，资源如何使用？ | 已完成本地应用 | [进入目录](gpu-data/) |
 | GPU Optimize | 在容量与 SLA 约束下，应调整哪些配置？ | 已完成容量优化阶段 | [进入目录](gpu-optimize/) |
 | GPU Improve | 行动是否执行，实际收益是否实现？ | 已完成可运行 MVP | [进入目录](gpu-improve/) |
-| GPU Forecast | 未来需要多少 GPU，何时采购或扩容？ | 待开发 | [查看边界](gpu-forecast/) |
+| GPU Forecast | 未来需要多少 GPU，何时采购或扩容？ | 正式规格已完成，待开发 | [查看规格](gpu-forecast/) |
 
 每个平台的入口、代码、测试、依赖和说明都在自己的目录中。GPU Data 与 GPU Optimize 可以分别运行，不依赖另一个平台的代码目录。
 
@@ -18,6 +18,7 @@
 - [产品设计](产品设计.md)
 - [四平台正式规格](四平台正式规格.md)
 - [GPU Improve 正式规格](gpu-improve/正式规格.md)
+- [GPU Forecast 正式规格](gpu-forecast/正式规格.md)
 
 ## 运行已完成的平台
 
