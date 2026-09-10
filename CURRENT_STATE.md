@@ -2,7 +2,7 @@
 
 ## Current Goal
 
-在四平台目录架构上继续产品开发：优先完成 GPU Improve，再完成 GPU Forecast；每个平台保持独立运行、独立测试和独立部署。
+完成 GPU Improve 的正式设计评审，再制定实施计划并按测试优先开发；每个平台保持独立运行、独立测试和独立部署。
 
 ## Completed and Validated
 
@@ -14,6 +14,7 @@
 - 过程性 `docs/` 已从当前主线移除；永久文档整理为根目录 `产品设计.md` 和 `四平台正式规格.md`。
 - 根 `README.md` 已更新为四平台导航、真实完成状态、运行方式和在线案例入口。
 - `compact-context` skill 已安装到本机 Codex skills。
+- GPU Improve 已完成专业对标和正式规格设计，覆盖行动台账、反事实基线、分类验证公式、证据等级、Supabase 数据模型和安全边界。
 
 ## Confirmed Decisions and Constraints
 
@@ -25,6 +26,8 @@
 - GPU Forecast 负责时间回测、预测区间、容量情景和采购预算计划。
 - 不把规划功能写成已上线；不自动修改生产资源；公开演示只使用合成数据。
 - 理论节省、批准节省和实际收益必须分开。
+- 所有核心能力必须先对标 FinOps Foundation、FOCUS 或成熟专业平台，并记录采用、未采用部分及原因。
+- GPU Improve 第一版采用 Streamlit + Supabase 免费数据库；邮箱登录、用户数据隔离，原始 CSV 不长期保存。
 
 ## Relevant Files
 
@@ -33,16 +36,17 @@
 - `四平台正式规格.md`：各平台输入、输出、规则和验收标准。
 - `gpu-data/`：已完成的数据洞察平台。
 - `gpu-optimize/`：已完成容量阶段的优化平台。
-- `gpu-improve/README.md`：下一产品的边界。
+- `gpu-improve/正式规格.md`：GPU Improve 的完整产品、数据、验证和安全规格。
+- `gpu-improve/README.md`：GPU Improve 的状态和入口。
 - `gpu-forecast/README.md`：后续预测产品的边界。
 
 ## Unresolved
 
-- GPU Improve 尚未设计和开发可运行应用。
+- GPU Improve 正式规格已完成，尚未编写实施计划或应用代码。
 - GPU Forecast 尚未设计和开发可运行应用。
 - GPU Optimize 的采购组合与运行配置功能尚未完成。
 - 功能分支和工作树暂时保留；主线稳定后再决定是否删除。
 
 ## Next Concrete Action
 
-按 `四平台正式规格.md` 对 GPU Improve 做专业对标和独立设计，用户确认后采用测试优先实现“行动导入 → 执行台账 → 前后对比 → 收益复盘”。
+请用户评审 `gpu-improve/正式规格.md`；确认无修改后，使用 writing-plans skill 创建实施计划。
