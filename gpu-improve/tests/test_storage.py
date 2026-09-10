@@ -15,6 +15,11 @@ class FakeQuery:
         self.payload = payload
         return self
 
+    def upsert(self, payload, on_conflict):
+        self.payload = payload
+        self.client.upsert_conflict = on_conflict
+        return self
+
     def select(self, columns):
         return self
 
@@ -30,6 +35,7 @@ class FakeQuery:
 class FakeClient:
     def __init__(self):
         self.calls = []
+        self.upsert_conflict = None
 
     def table(self, name):
         return FakeQuery(self, name)
@@ -47,6 +53,8 @@ class SchemaSecurityTest(unittest.TestCase):
         self.assertIn("auth.uid()", sql)
         self.assertIn("prevent_baseline_mutation", sql)
         self.assertIn("foreign key (action_id, project_id)", sql)
+        self.assertIn("primary key (action_id, project_id)", sql)
+        self.assertIn("actor text not null", sql)
 
 
 class StorageContractTest(unittest.TestCase):
@@ -82,6 +90,12 @@ class StorageContractTest(unittest.TestCase):
         with self.assertRaisesRegex(StorageError, "数据库操作失败") as error:
             store.create_project("项目一")
         self.assertNotIn("secret-service-role-key", str(error.exception))
+
+    def test_benefit_result_upserts_per_project_and_action(self):
+        client = FakeClient()
+        store = SupabaseStore(client, user_id="USER-1")
+        store.save_benefit_result("P-1", {"action_id": "ACT-1"})
+        self.assertEqual(client.upsert_conflict, "action_id,project_id")
 
 
 if __name__ == "__main__":

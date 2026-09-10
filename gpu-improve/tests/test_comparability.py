@@ -54,9 +54,24 @@ class ComparabilityTest(unittest.TestCase):
             date(2026, 6, 1), date(2026, 6, 15), 100, 0,
         )
         post = snapshot(period_start=date(2026, 9, 1), period_end=date(2026, 10, 1))
-        result = check_comparability(version, post, action)
+        result = check_comparability(
+            version, post, action,
+            actual_execution_at=datetime(2026, 6, 15, tzinfo=timezone.utc),
+        )
         self.assertFalse(result.allowed)
         self.assertIn("执行日期不在基线与行动后观察期之间", result.blocking_reasons)
+
+    def test_planned_date_cannot_replace_actual_execution_evidence(self):
+        from src.models import ActionRecord, ActionType
+
+        version = freeze_baseline(snapshot(), datetime(2026, 8, 1, tzinfo=timezone.utc))
+        post = snapshot(period_start=date(2026, 9, 1), period_end=date(2026, 10, 1))
+        action = ActionRecord(
+            "ACT-001", ActionType.RIGHTSIZE, "GPU-001", "owner",
+            date(2026, 8, 1), date(2026, 8, 15), 100, 0,
+        )
+        result = check_comparability(version, post, action)
+        self.assertIn("缺少实际执行时间", result.blocking_reasons)
     def setUp(self):
         self.baseline = freeze_baseline(
             snapshot(),

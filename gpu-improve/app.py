@@ -10,9 +10,9 @@ import streamlit as st
 from src.action_io import read_actions_csv
 from src.benefits import BenefitResult, verify_benefit
 from src.comparability import check_comparability
-from src.guards import SideEffectThresholds, evaluate_side_effects, finalize_result
+from src.guards import ActionScope, SideEffectThresholds, evaluate_side_effects, finalize_result, find_overlaps
 from src.measurement import MetricSnapshot, freeze_baseline
-from src.lifecycle import ALLOWED_TRANSITIONS, transition_action
+from src.lifecycle import ALLOWED_TRANSITIONS, ActionEvent, transition_action
 from src.models import ActionRecord, ActionStatus, ActionType
 from src.reporting import build_ledger, export_csv_bytes, render_executive_report
 from src.storage import SupabaseStore
@@ -57,6 +57,25 @@ def _require_login():
                 BenefitResult(**{**row["payload"], "reasons": tuple(row["payload"].get("reasons", ()))})
                 for row in result_rows
             ]
+            event_rows = store.list_rows("action_events", st.session_state["project_id"])
+            st.session_state["action_events"] = [
+                {
+                    "action_id": row["action_id"],
+                    "event": ActionEvent(
+                        ActionStatus(row["from_status"]), ActionStatus(row["to_status"]),
+                        row["actor"], datetime.fromisoformat(row["changed_at"]), row.get("note") or "",
+                    ),
+                }
+                for row in event_rows if row.get("from_status")
+            ]
+            measurement_rows = store.list_rows("measurements", st.session_state["project_id"])
+            scopes = {}
+            for row in measurement_rows:
+                scopes[row["action_id"]] = ActionScope(
+                    row["action_id"], row["payload"]["resource_pool_ids"][0],
+                    date.fromisoformat(row["period_start"]), date.fromisoformat(row["period_end"]),
+                )
+            st.session_state["verification_scopes"] = scopes
         return
     from supabase import create_client
 
@@ -80,6 +99,7 @@ def _initial_state():
     st.session_state.setdefault("improve_actions", [])
     st.session_state.setdefault("benefit_results", [])
     st.session_state.setdefault("action_events", [])
+    st.session_state.setdefault("verification_scopes", {})
 
 
 def _store():
@@ -145,25 +165,36 @@ def render_ledger():
         return
     status = st.selectbox("推进到", [item.value for item in targets])
     note = st.text_input("变更说明")
+    event_date = st.date_input("实际发生日期", value=date.today())
     if st.button("记录状态变化"):
         event = transition_action(
             current.status, ActionStatus(status), current.owner,
-            datetime.now(timezone.utc), note,
+            datetime.combine(event_date, datetime.min.time(), timezone.utc), note,
         )
         st.session_state["improve_actions"] = [
             replace(item, status=ActionStatus(status)) if item.action_id == selected else item
             for item in actions
         ]
-        st.session_state["action_events"].append(event)
+        st.session_state["action_events"].append({"action_id": selected, "event": event})
         if _store():
             project_id = st.session_state["project_id"]
             _store().append_event(project_id, {
                 "action_id": selected, "from_status": event.from_status.value,
                 "to_status": event.to_status.value, "changed_at": event.occurred_at.isoformat(),
-                "note": event.note,
+                "actor": event.actor, "note": event.note,
             })
             _store().update_action_status(project_id, selected, event.to_status.value)
         st.success("状态已推进，并追加不可变事件。")
+    history = [
+        {
+            "行动编号": item["action_id"], "原状态": item["event"].from_status.value,
+            "新状态": item["event"].to_status.value, "操作者": item["event"].actor,
+            "时间": item["event"].occurred_at, "说明": item["event"].note,
+        }
+        for item in st.session_state["action_events"] if item["action_id"] == selected
+    ]
+    st.subheader("状态历史")
+    st.dataframe(pd.DataFrame(history), use_container_width=True, hide_index=True)
 
 
 def render_verification():
@@ -186,15 +217,31 @@ def render_verification():
         st.error(f"指标文件无效：{exc}")
         return
     baseline = freeze_baseline(before, datetime.now(timezone.utc))
-    comparability = check_comparability(baseline, post, action)
+    executed = [
+        item["event"] for item in st.session_state["action_events"]
+        if item["action_id"] == selected_id and item["event"].to_status == ActionStatus.EXECUTED
+    ]
+    actual_execution_at = executed[-1].occurred_at if executed else None
+    comparability = check_comparability(
+        baseline, post, action, actual_execution_at=actual_execution_at
+    )
     if not can_verify(comparability):
-        st.error("验证被阻断：" + "；".join(comparability.blocking_reasons))
+        st.error("验证被阻断（必须存在实际执行事件）：" + "；".join(comparability.blocking_reasons))
         return
     st.success(f"可比性通过，证据等级：{comparability.evidence_grade}")
     if st.button("计算并保存收益", type="primary"):
         raw = verify_benefit(action, baseline, post, comparability)
         thresholds = SideEffectThresholds(99.9, 200, 5, 0.5, 10)
-        result = finalize_result(raw, (), evaluate_side_effects(before, post, thresholds))
+        candidate = ActionScope(
+            selected_id, action.resource_pool_id, post.period_start, post.period_end
+        )
+        other_scopes = [
+            scope for action_id, scope in st.session_state["verification_scopes"].items()
+            if action_id != selected_id
+        ]
+        overlaps = find_overlaps(tuple(other_scopes + [candidate]))
+        result = finalize_result(raw, overlaps, evaluate_side_effects(before, post, thresholds))
+        st.session_state["verification_scopes"][selected_id] = candidate
         st.session_state["benefit_results"] = [
             item for item in st.session_state["benefit_results"] if item.action_id != selected_id
         ] + [result]

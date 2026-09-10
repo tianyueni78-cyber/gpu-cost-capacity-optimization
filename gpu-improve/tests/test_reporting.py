@@ -37,6 +37,13 @@ class ReportingTest(unittest.TestCase):
         self.assertEqual(ledger["成本规避（USD）"].sum(), 5000)
         self.assertEqual(list(ledger.columns)[0:3], ["项目", "行动编号", "负责人"])
 
+    def test_reverification_keeps_only_latest_result_per_action(self):
+        ledger = build_ledger([
+            result("ACT-1", realized=1000), result("ACT-1", realized=700)
+        ])
+        self.assertEqual(len(ledger), 1)
+        self.assertEqual(ledger.iloc[0]["已验证收益（USD）"], 700)
+
     def test_csv_uses_utf8_bom(self):
         payload = export_csv_bytes(build_ledger([result("ACT-1", realized=1000)]))
 

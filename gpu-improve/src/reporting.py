@@ -26,7 +26,8 @@ def build_ledger(
 ) -> pd.DataFrame:
     details = action_details or {}
     rows = []
-    for item in results:
+    latest = {item.action_id: item for item in results}
+    for item in latest.values():
         action = details.get(item.action_id, {})
         rows.append(
             {

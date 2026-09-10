@@ -18,6 +18,9 @@ class AppUiTest(unittest.TestCase):
         self.assertIn("transition_action", source)
         self.assertIn("上传基线指标 CSV", source)
         self.assertIn("上传行动后指标 CSV", source)
+        self.assertIn("find_overlaps", source)
+        self.assertIn("实际执行事件", source)
+        self.assertIn("状态历史", source)
 
 
 if __name__ == "__main__":

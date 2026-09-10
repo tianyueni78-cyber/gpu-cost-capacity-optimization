@@ -44,7 +44,14 @@ class SupabaseStore:
         return self._insert("measurements", {**payload, "project_id": project_id})
 
     def save_benefit_result(self, project_id: str, payload: dict):
-        return self._insert("benefit_results", {**payload, "project_id": project_id})
+        try:
+            clean = {key: value for key, value in payload.items() if key != "owner_id"}
+            clean["project_id"] = project_id
+            return self.client.table("benefit_results").upsert(
+                clean, on_conflict="action_id,project_id"
+            ).execute().data
+        except Exception:
+            raise StorageError("数据库操作失败，请检查连接和权限") from None
 
     def update_action_status(self, project_id: str, action_id: str, status: str):
         try:
