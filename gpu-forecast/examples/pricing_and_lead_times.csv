@@ -1,0 +1,2 @@
+gpu_model,region,procurement_method,effective_rate,billing_periods,lead_days,valid_from,valid_to
+H100-80GB,cn-east-1,OnDemand,2400,1,14,2026-01-01,2027-12-31
