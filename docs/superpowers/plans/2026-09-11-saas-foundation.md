@@ -4,7 +4,7 @@
 
 **Goal:** 建立四产品可共同依赖的生产级多租户控制层、API 契约和本地可验证运行栈。
 
-**Architecture:** 新建 `platform/`，FastAPI 仅承载身份、租户、授权、任务与产品调用编排；现有四产品 Python 模块保持独立。PostgreSQL RLS 是最终隔离边界，Redis/Celery 承载长任务，Next.js 在下一独立计划中消费稳定 API。
+**Architecture:** 新建 `saas_control/`，FastAPI 仅承载身份、租户、授权、任务与产品调用编排；现有四产品 Python 模块保持独立。PostgreSQL RLS 是最终隔离边界，Redis/Celery 承载长任务，Next.js 在下一独立计划中消费稳定 API。
 
 **Tech Stack:** Python 3.11、FastAPI、Pydantic v2、PostgreSQL/Supabase、Redis/Celery、pytest、Docker Compose。
 
@@ -22,19 +22,19 @@
 
 ### Task 1: 共享领域契约与 RBAC
 
-**Files:** Create `platform/app/domain.py`, `platform/tests/test_domain.py`, `platform/pyproject.toml`.
+**Files:** Create `saas_control/app/domain.py`, `saas_control/tests/test_domain.py`, `saas_control/pyproject.toml`.
 
 **Interfaces:** `Role`、`Product`、`Permission` 枚举；`authorize(role, permission) -> None`；`TenantContext` 禁止空组织、项目或用户。
 
 - [ ] 写测试覆盖四级角色、过期订阅读取/写入边界和非法上下文。
-- [ ] 运行 `python -m unittest platform.tests.test_domain -v`，确认模块缺失。
+- [ ] 运行 `python -m unittest saas_control.tests.test_domain -v`，确认模块缺失。
 - [ ] 实现最小权限矩阵与冻结上下文。
 - [ ] 运行测试和全量四产品回归。
 - [ ] 提交 `feat: add shared SaaS authorization contracts`。
 
 ### Task 2: FastAPI 租户边界
 
-**Files:** Create `platform/app/main.py`, `platform/app/security.py`, `platform/tests/test_api_security.py`.
+**Files:** Create `saas_control/app/main.py`, `saas_control/app/security.py`, `saas_control/tests/test_api_security.py`.
 
 **Interfaces:** `GET /healthz`；`GET /v1/context`；JWT 验证器输出 `TenantContext`；受保护路由不接受 owner_id。
 
@@ -45,7 +45,7 @@
 
 ### Task 3: PostgreSQL 多租户迁移
 
-**Files:** Create `platform/migrations/001_control_plane.sql`, `platform/tests/test_migrations.py`.
+**Files:** Create `saas_control/migrations/001_control_plane.sql`, `saas_control/tests/test_migrations.py`.
 
 **Interfaces:** organizations、memberships、projects、product_entitlements、subscriptions、connectors、jobs、audit_events；所有外键包含 organization_id。
 
@@ -56,7 +56,7 @@
 
 ### Task 4: 幂等任务与审计
 
-**Files:** Create `platform/app/jobs.py`, `platform/app/audit.py`, `platform/tests/test_jobs.py`.
+**Files:** Create `saas_control/app/jobs.py`, `saas_control/app/audit.py`, `saas_control/tests/test_jobs.py`.
 
 **Interfaces:** `submit_job(context, product, operation, idempotency_key)`；状态仅允许合法转换；公开错误不包含凭据。
 
@@ -66,7 +66,7 @@
 
 ### Task 5: 本地生产等价栈与 CI
 
-**Files:** Create `compose.yaml`, `platform/Dockerfile`, `.github/workflows/saas-ci.yml`, `docs/operations/local-stack.md`.
+**Files:** Create `compose.yaml`, `saas_control/Dockerfile`, `.github/workflows/saas-ci.yml`, `docs/operations/local-stack.md`.
 
 **Interfaces:** API、worker、PostgreSQL、Redis、Supabase 服务健康检查；环境变量由 `.env.example` 描述。
 
