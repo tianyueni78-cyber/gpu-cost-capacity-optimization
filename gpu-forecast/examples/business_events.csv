@@ -1,0 +1,3 @@
+event_id,period,team_id,workload_type,gpu_model,region,event_type,expected_delta,confirmed,event_description
+EVT-001,2026-01-01,TEAM-A,Inference,H100-80GB,cn-east-1,CustomerLaunch,200000,true,已确认客户上线带来请求量增长
+EVT-002,2026-02-01,TEAM-A,Inference,H100-80GB,cn-east-1,Campaign,80000,false,营销活动影响仍待业务负责人确认
