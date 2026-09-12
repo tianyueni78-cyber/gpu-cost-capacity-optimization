@@ -1,0 +1,1 @@
+sla_id,team_id,workload_type,region,priority_tier,min_spare_capacity_pct,product_id,effective_from,effective_to,availability_target_pct,p95_latency_target_ms,max_queue_time_seconds,interruptible_allowed

@@ -69,6 +69,8 @@ python pilot.py examples/pilot examples/pilot-output
 
 试点输入契约和安全边界见[试点设计](docs/superpowers/specs/2026-09-12-gpu-pilot-design.md)。
 
+准备真实客户试点时，从[客户试点包](customer-pilot-pack/)开始。该目录包含空白数据模板、脱敏说明、30 分钟流程、审核清单和首轮实验报价。
+
 ## 产品边界
 
 - 当前为本地只读决策工具，不自动修改生产资源；

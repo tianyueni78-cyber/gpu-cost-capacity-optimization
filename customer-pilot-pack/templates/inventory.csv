@@ -1,0 +1,1 @@
+resource_pool_id,team_id,gpu_model,gpu_count,region,procurement_model,effective_hourly_rate_usd,product_id,workload_type,contract_id,start_date,end_date

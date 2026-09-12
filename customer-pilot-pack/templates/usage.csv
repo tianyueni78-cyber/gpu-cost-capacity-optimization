@@ -1,0 +1,1 @@
+usage_record_id,timestamp_utc,resource_pool_id,allocated_gpu_count,active_gpu_count,gpu_utilization_pct,team_id,product_id,workload_type,memory_utilization_pct,business_volume,volume_unit,p95_latency_ms,queue_time_seconds,availability_pct,telemetry_status

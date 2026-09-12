@@ -1,0 +1,1 @@
+billing_line_id,invoice_month,resource_pool_id,charge_type,procurement_model,gross_cost_usd,discount_usd,net_cost_usd,team_id,contract_id,usage_start_date,usage_end_date,billed_gpu_hours,unit_rate_usd,currency
