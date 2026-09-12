@@ -1,0 +1,3 @@
+scenario,allocated_gpu_count,reallocatable_gpu_count,affected_cost_usd,theoretical_savings_usd,sla_shortfall_gpu_count
+当前方案,20,0,0,0,0
+安全调整,18,2,3000,0,0

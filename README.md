@@ -54,6 +54,21 @@ python -m unittest discover -s tests -v
 
 在线案例使用合成数据，不接收真实企业数据。
 
+## 端到端审计试点
+
+三个已运行产品通过 CSV 交接，不共享运行代码。使用仓库内的合成数据生成 GPU Improve 行动文件和管理层总报告：
+
+```powershell
+python pilot.py examples/pilot examples/pilot-output
+```
+
+输出：
+
+- `examples/pilot-output/actions.csv`：仅包含已有人工批准记录的行动，可直接导入 GPU Improve；
+- `examples/pilot-output/executive-report.md`：分开呈现受影响成本、已验证收益和成本规避。
+
+试点输入契约和安全边界见[试点设计](docs/superpowers/specs/2026-09-12-gpu-pilot-design.md)。
+
 ## 产品边界
 
 - 当前为本地只读决策工具，不自动修改生产资源；

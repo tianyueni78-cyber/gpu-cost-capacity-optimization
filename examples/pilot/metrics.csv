@@ -1,0 +1,6 @@
+section,metric,value
+cost_summary,gross_cost_usd,13800
+cost_summary,discount_usd,1800
+cost_summary,net_cost_usd,12000
+coverage,gpu_telemetry_coverage_pct,96
+coverage,cost_attribution_coverage_pct,100

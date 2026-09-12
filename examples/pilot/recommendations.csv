@@ -1,0 +1,3 @@
+recommendation_id,status,affected_resources,period,current_configuration,proposed_configuration,constraints_met,affected_cost_usd,business_impact,sla_risk,limitation,owner_question
+H100-us-east,待审批,"pool-h100,pool-h100-b",2026-08,当前 12 张 GPU,建议保留 10 张 GPU,是,3000,释放容量供其他团队使用,低：硬约束已满足,受影响成本不是已验证节省,是否批准进入实施验证
+A100-us-east,待确认,pool-a100,2026-08,当前 8 张 GPU,建议保留 8 张 GPU,否,0,保持当前容量,高：需求尚未确认,缺少已确认峰值需求,是否确认未来峰值需求

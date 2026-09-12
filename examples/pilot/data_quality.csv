@@ -1,0 +1,2 @@
+check_id,table_name,category,severity,status,affected_rows,total_rows,message,action
+USAGE_MEMORY,usage,完整性,警告,异常,4,100,4% 记录缺少显存利用率,补充遥测后复核型号调整

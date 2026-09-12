@@ -1,0 +1,2 @@
+recommendation_id,owner,approved_at,planned_execution_at,implementation_cost_usd
+H100-us-east,ops@example.com,2026-09-01,2026-09-08,100

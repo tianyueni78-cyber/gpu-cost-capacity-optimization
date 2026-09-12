@@ -1,0 +1,2 @@
+signal_type,priority,scope,period,observation,evidence,affected_cost_usd,limitation,question,source_tables,affected_rows
+LOW_UTILIZATION,高,pool-h100,2026-08,持续低利用率,P95 利用率低于内部调查阈值,4000,低利用率不等于可安全回收,是否存在排队或批处理窗口限制,usage|billing,72

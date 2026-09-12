@@ -1,0 +1,3 @@
+项目,行动编号,负责人,状态,预计收益（USD）,实施成本（USD）,已验证收益（USD）,成本规避（USD）,证据等级,验证方法,SLA结论,原因
+示例 AI 公司,H100-us-east-1,ops@example.com,VERIFIED,0,100,700,0,HIGH,RIGHTSIZE_NORMALIZED,通过,
+示例 AI 公司,H100-us-east-2,ops@example.com,UNVERIFIABLE,0,100,0,200,LOW,AVOIDED_PURCHASE,无法验证,观察期不足

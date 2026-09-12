@@ -6,6 +6,8 @@
 
 ## Completed and Validated
 
+- Data → Optimize → Improve 审计试点 CLI 已实现；它使用现有 CSV 导出生成 Improve 行动文件和管理层总报告，不引入共享运行服务。
+- 合成试点数据覆盖人工批准、未批准建议、数据质量风险、已验证收益和成本规避。
 - 仓库已重构为四个产品目录：`gpu-data/`、`gpu-optimize/`、`gpu-improve/`、`gpu-forecast/`。
 - GPU Data 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；29 项测试、Python 编译和 Streamlit 健康检查通过。
 - GPU Optimize 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；38 项测试、Python 编译和 Streamlit 健康检查通过。
@@ -41,6 +43,8 @@
 - `gpu-improve/正式规格.md`：GPU Improve 的完整产品、数据、验证和安全规格。
 - `gpu-improve/README.md`：GPU Improve 的状态和入口。
 - `gpu-forecast/README.md`：后续预测产品的边界。
+- `pilot.py`：三个已运行产品的文件交接和试点总报告入口。
+- `examples/pilot/`：可直接运行的合成试点输入。
 
 ## Unresolved
 
