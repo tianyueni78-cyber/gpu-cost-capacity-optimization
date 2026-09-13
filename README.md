@@ -13,6 +13,26 @@
 
 每个平台的入口、代码、测试、依赖和说明都在自己的目录中。GPU Data 与 GPU Optimize 可以分别运行，不依赖另一个平台的代码目录。
 
+## 统一本地环境
+
+启动 Docker Desktop 后，在仓库根目录的普通 PowerShell 运行：
+
+```powershell
+.\scripts\local-stack.ps1 start
+```
+
+首次运行会自动生成本地 `.env`，Docker 持久数据固定保存在 `E:\DockerData\gpu-saas`。统一入口为 http://localhost:3000，登录密码可在本地 `.env` 的 `LOCAL_DEV_PASSWORD` 中查看。
+
+停止、查看状态和日志：
+
+```powershell
+.\scripts\local-stack.ps1 stop
+.\scripts\local-stack.ps1 status
+.\scripts\local-stack.ps1 logs
+```
+
+完整说明见 [Windows 本地生产等价环境](docs/operations/local-stack.md)。
+
 ## 文档
 
 - [产品设计](产品设计.md)

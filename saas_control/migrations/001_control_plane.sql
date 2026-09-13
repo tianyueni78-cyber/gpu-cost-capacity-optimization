@@ -107,4 +107,14 @@ create policy entitlements_members on product_entitlements for select using (is_
 create policy subscriptions_members on subscriptions for select using (is_organization_member(organization_id));
 create policy connectors_members on connectors for select using (is_organization_member(organization_id));
 create policy jobs_members on jobs for select using (is_organization_member(organization_id));
+create policy jobs_member_insert on jobs for insert with check (
+  is_organization_member(organization_id)
+  and exists (
+    select 1 from projects p
+    where p.organization_id = jobs.organization_id and p.project_id = jobs.project_id
+  )
+);
+create policy jobs_member_update on jobs for update
+using (is_organization_member(organization_id))
+with check (is_organization_member(organization_id));
 create policy audit_members on audit_events for select using (is_organization_member(organization_id));

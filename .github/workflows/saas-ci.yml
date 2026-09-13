@@ -1,0 +1,36 @@
+name: SaaS foundation
+
+on:
+  push:
+    branches: [feature/production-saas-foundation]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e "./saas_control[test]"
+      - run: python -m unittest discover -s saas_control/tests -v
+      - run: |
+          for product in gpu-data gpu-optimize gpu-improve gpu-forecast; do
+            pip install -r "$product/requirements.txt"
+            (cd "$product" && python -m unittest discover -s tests -v)
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: docker compose config --quiet
+        env:
+          POSTGRES_PASSWORD: ci-only
+          LOCAL_JWT_SECRET: ci-only-ci-only-ci-only-ci-only
+          LOCAL_DEV_PASSWORD: ci-only

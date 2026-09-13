@@ -1,6 +1,10 @@
 __pycache__/
+pytest-cache-files-*/
 *.py[cod]
 .venv/
 .tmp/
 .worktrees/
 .streamlit/secrets.toml
+.env
+node_modules/
+.next/

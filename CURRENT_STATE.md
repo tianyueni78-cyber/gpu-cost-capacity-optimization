@@ -2,7 +2,7 @@
 
 ## Current Goal
 
-完成 GPU Forecast 独立本地 MVP，并保持四个平台独立运行、独立测试和独立部署。
+在 feature/production-saas-foundation 的既有隔离工作树中完成四产品“本地生产等价运行环境”：一条 PowerShell 命令启动 Next.js、FastAPI、PostgreSQL、Redis 和 worker，支持本地登录、组织/项目选择、四产品入口及任务持久化。
 
 ## Completed and Validated
 
@@ -16,6 +16,10 @@
 - 根 `README.md` 已更新为四平台导航、真实完成状态、运行方式和在线案例入口。
 - `compact-context` skill 已安装到本机 Codex skills。
 - GPU Improve 已完成专业对标和正式规格设计，覆盖行动台账、反事实基线、分类验证公式、证据等级、Supabase 数据模型和安全边界。
+- 生产 SaaS 共享底座已完成第一批代码：RBAC/租户上下文、FastAPI 鉴权边界、PostgreSQL 多租户迁移、幂等任务与审计；`saas_control/tests` 现有 15 项测试通过。
+- 本地生产等价栈已实现：一条 PowerShell 命令启动 Next.js、FastAPI、PostgreSQL、Redis 和 worker；本地登录、组织/项目选择、四产品入口及任务状态可用。
+- PostgreSQL 与 Redis 已通过显式 bind mount 固定到 `E:\DockerData\gpu-saas`；已实测容器重启后组织、项目和任务保留。
+- 已实测服务健康、任务幂等与 worker 完成、PostgreSQL 跨租户 RLS 拒绝、Next.js 生产构建和四产品共 152 项回归测试。
 
 ## Confirmed Decisions and Constraints
 
@@ -26,6 +30,8 @@
 - GPU Improve 负责行动台账、前后对比和实际收益验证。
 - GPU Forecast 负责时间回测、预测区间、容量情景和采购预算计划。
 - 不把规划功能写成已上线；不自动修改生产资源；公开演示只使用合成数据。
+- Docker 持久数据继续使用 E:\DockerData，不得迁移到 C 盘。
+- 本阶段仅实现本地开发登录与受控产品入口；不实现正式连接器、支付、企业 SSO、备案或自动资源变更。
 - 理论节省、批准节省和实际收益必须分开。
 - 所有核心能力必须先对标 FinOps Foundation、FOCUS 或成熟专业平台，并记录采用、未采用部分及原因。
 - GPU Improve 第一版采用 Streamlit + Supabase 免费数据库；邮箱登录、用户数据隔离，原始 CSV 不长期保存。
@@ -40,14 +46,21 @@
 - `gpu-improve/正式规格.md`：GPU Improve 的完整产品、数据、验证和安全规格。
 - `gpu-improve/README.md`：GPU Improve 的状态和入口。
 - `gpu-forecast/README.md`：后续预测产品的边界。
+- `compose.yaml`、`.env.example`、`scripts/local-stack.ps1`：本地栈与单一启动入口。
+- `saas_control/`：API、worker、多租户迁移、任务持久化和测试。
+- `web/`：统一登录、租户选择、四产品入口、运行状态和任务页面。
+- `docs/operations/local-stack.md`：普通 Windows 用户启动、停止和故障排查。
 
 ## Unresolved
 
-- GPU Improve 的生产 Supabase 项目、正式部署和企业系统集成尚未实施。
-- GPU Forecast 尚未连接生产 Supabase 或企业采购系统。
-- GPU Optimize 的采购组合与运行配置功能尚未完成。
+- 统一 Next.js 当前提供受控产品页面和任务入口，尚未把四个 Streamlit 计算界面重写到统一前台。
+- 尚未建立或配置对象存储、开发/预发布/生产环境；本阶段仅验证本地 PostgreSQL 与 Redis。
+- AWS、Kubernetes/Prometheus 连接器尚未实施，四产品尚未接入持久化数据快照和异步任务。
+- 支付宝、企业 SSO、订阅授权、人工开票流程、ICP/隐私协议/等保准备尚未实施。
+- 监控告警、备份恢复、99.9% 可用性、RPO/RTO、负载与安全验收均未完成。
+- GPU Optimize 的采购组合与运行配置能力仍未完成；任何产品都不自动修改客户生产资源。
 - 功能分支和工作树暂时保留；主线稳定后再决定是否删除。
 
 ## Next Concrete Action
 
-用脱敏客户数据执行 `gpu-forecast/docs/GPU-Forecast-试点验证.md` 的 30 分钟试点。
+提交并推送 `feature/production-saas-foundation`。下一阶段优先接入一个公开云价格源或真实客户脱敏数据源，并让现有计算核心通过统一任务入口消费持久化数据快照。
