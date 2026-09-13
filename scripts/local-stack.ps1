@@ -25,7 +25,7 @@ DOCKER_DATA_ROOT=E:/DockerData/gpu-saas
     }
     docker info *> $null
     if ($LASTEXITCODE -ne 0) { throw "Docker engine is unavailable. Start Docker Desktop and retry." }
-    docker compose --project-directory $root up --build -d --wait
+    docker compose --project-directory $root up -d --wait
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed. Run .\scripts\local-stack.ps1 logs for details." }
     Write-Host "App: http://localhost:3000"
     Write-Host "API health: http://localhost:8000/healthz"

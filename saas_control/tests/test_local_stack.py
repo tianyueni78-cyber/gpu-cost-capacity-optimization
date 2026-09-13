@@ -32,6 +32,8 @@ class LocalStackContractTest(unittest.TestCase):
     def test_single_windows_entrypoint_exists(self):
         script = (ROOT / "scripts" / "local-stack.ps1").read_text(encoding="utf-8")
         self.assertIn("docker compose", script)
+        self.assertIn("up -d --wait", script)
+        self.assertNotIn("up --build", script)
         self.assertIn("E:\\DockerData", script)
         self.assertIn("RandomNumberGenerator", script)
         self.assertNotIn("请修改其中", script)
