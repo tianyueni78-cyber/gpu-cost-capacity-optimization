@@ -54,7 +54,8 @@ class LocalStackContractTest(unittest.TestCase):
 
     def test_startup_stops_when_compose_fails(self):
         script = (ROOT / "scripts" / "local-stack.ps1").read_text(encoding="utf-8")
-        self.assertIn('if ($LASTEXITCODE -ne 0) { throw "Docker Compose 启动失败', script)
+        self.assertIn('if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed', script)
+        script.encode("ascii")
 
     def test_operations_guide_has_one_command_and_boundaries(self):
         guide = (ROOT / "docs" / "operations" / "local-stack.md").read_text(encoding="utf-8")

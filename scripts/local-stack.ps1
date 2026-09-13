@@ -8,7 +8,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $dataRoot = "E:\DockerData\gpu-saas"
 
 if ($Action -eq "start") {
-    if (-not (Test-Path E:\)) { throw "E: 盘不可用，已停止以避免把 Docker 数据写入 C 盘。" }
+    if (-not (Test-Path E:\)) { throw "E: drive is unavailable; stopping to avoid writing Docker data to C:." }
     New-Item -ItemType Directory -Force -Path "$dataRoot\postgres", "$dataRoot\redis" | Out-Null
     if (-not (Test-Path "$root\.env")) {
         $postgresPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
@@ -21,14 +21,14 @@ LOCAL_DEV_EMAIL=student@example.com
 LOCAL_DEV_PASSWORD=$loginPassword
 DOCKER_DATA_ROOT=E:/DockerData/gpu-saas
 "@ | Set-Content -LiteralPath "$root\.env" -Encoding utf8
-        Write-Host "首次本地登录：student@example.com / $loginPassword"
+        Write-Host "First local login: student@example.com / $loginPassword"
     }
     docker info *> $null
-    if ($LASTEXITCODE -ne 0) { throw "Docker 引擎不可用。请启动 Docker Desktop 后重试。" }
+    if ($LASTEXITCODE -ne 0) { throw "Docker engine is unavailable. Start Docker Desktop and retry." }
     docker compose --project-directory $root up --build -d --wait
-    if ($LASTEXITCODE -ne 0) { throw "Docker Compose 启动失败，请运行 .\scripts\local-stack.ps1 logs 查看证据。" }
-    Write-Host "统一入口：http://localhost:3000"
-    Write-Host "API 健康：http://localhost:8000/healthz"
+    if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed. Run .\scripts\local-stack.ps1 logs for details." }
+    Write-Host "App: http://localhost:3000"
+    Write-Host "API health: http://localhost:8000/healthz"
     exit
 }
 
