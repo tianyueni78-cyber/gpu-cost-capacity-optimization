@@ -78,7 +78,7 @@ def create_app(
         email, password, user_id = dev_credentials
         if (payload.email, payload.password) != (email, password):
             raise HTTPException(status_code=401, detail="邮箱或密码错误")
-        tenants = store.authenticate(payload.email, payload.password)
+        tenants = store.authenticate(user_id, payload.password)
         if not tenants:
             raise HTTPException(status_code=401, detail="邮箱或密码错误")
         return {"selection_token": issue_token(user_id, None, None), "tenants": tenants}

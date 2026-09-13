@@ -16,7 +16,7 @@ class PostgresStore:
     def _connect(self):
         return psycopg.connect(self.database_url, row_factory=dict_row)
 
-    def authenticate(self, email: str, _password: str):
+    def authenticate(self, user_id: str, _password: str):
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -26,10 +26,10 @@ class PostgresStore:
                 join memberships m on m.user_id = u.id
                 join organizations o on o.organization_id = m.organization_id
                 join projects p on p.organization_id = o.organization_id
-                where lower(u.email) = lower(%s)
+                where u.id = %s
                 order by o.name, p.name
                 """,
-                (email,),
+                (user_id,),
             )
             return cur.fetchall()
 

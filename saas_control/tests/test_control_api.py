@@ -9,8 +9,8 @@ class FakeStore:
     def __init__(self):
         self.jobs = {}
 
-    def authenticate(self, email, password):
-        if (email, password) != ("student@example.com", "local-only"):
+    def authenticate(self, user_id, password):
+        if (user_id, password) != ("USER-A", "local-only"):
             return None
         return [{"organization_id": "ORG-A", "organization_name": "Student Lab", "project_id": "PROJECT-A", "project_name": "GPU Pilot"}]
 
@@ -81,6 +81,16 @@ class LocalControlApiTest(unittest.TestCase):
         selection_headers = {"Authorization": f"Bearer {login.json()['selection_token']}"}
         response = self.client.post("/v1/dev/select", json={"organization_id": "ORG-B", "project_id": "PROJECT-B"}, headers=selection_headers)
         self.assertEqual(response.status_code, 404)
+
+    def test_configured_email_does_not_have_to_match_seed_email(self):
+        client = TestClient(create_app(
+            lambda _token: {"sub": "USER-A"},
+            store=self.store,
+            issue_token=lambda user, org=None, project=None: "selection-token",
+            dev_credentials=("me@example.com", "local-only", "USER-A"),
+        ))
+        response = client.post("/v1/dev/login", json={"email": "me@example.com", "password": "local-only"})
+        self.assertEqual(response.status_code, 200)
 
     def test_viewer_cannot_submit_analysis_job(self):
         client = TestClient(create_app(
