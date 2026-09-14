@@ -2,12 +2,12 @@
 
 ## Current Goal
 
-用 Alibaba PAI 公开 GPU trace 与 Azure 官方零售价验证 GPU Data，并将通过质量门禁的分析结果接入 GPU Optimize，形成可审核、持久化的最小建议闭环。
+取得一份经授权和脱敏的真实客户账单、GPU 遥测与 SLA 范围，验证建议可执行性，并通过 GPU Improve 记录一次实际结果。
 
 ## Completed and Validated
 
 - 仓库已重构为四个产品目录：`gpu-data/`、`gpu-optimize/`、`gpu-improve/`、`gpu-forecast/`。
-- GPU Data 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；29 项测试、Python 编译和 Streamlit 健康检查通过。
+- GPU Data 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；31 项测试、Python 编译和 Streamlit 健康检查通过。
 - GPU Optimize 已迁入独立目录，包含入口、业务代码、测试、依赖、README 和试点文档；38 项测试、Python 编译和 Streamlit 健康检查通过。
 - GPU Improve 已实现行动导入、执行台账、收益验证和收益复盘四页流程，并具备 Supabase RLS 数据契约。
 - GPU Forecast 已完成数据准备度、滚动回测、三类模型、版本化调整、容量情景、采购计划、四页 Streamlit 流程和安全存储契约。
@@ -16,10 +16,10 @@
 - 根 `README.md` 已更新为四平台导航、真实完成状态、运行方式和在线案例入口。
 - `compact-context` skill 已安装到本机 Codex skills。
 - GPU Improve 已完成专业对标和正式规格设计，覆盖行动台账、反事实基线、分类验证公式、证据等级、Supabase 数据模型和安全边界。
-- 生产 SaaS 共享底座包含 RBAC/租户上下文、FastAPI 鉴权边界、PostgreSQL 多租户迁移、幂等任务、审计和 GPU Data 异步闭环；`saas_control/tests` 现有 36 项测试通过。
+- 生产 SaaS 共享底座包含 RBAC/租户上下文、FastAPI 鉴权边界、PostgreSQL 多租户迁移、幂等任务、审计和 GPU Data 异步闭环；`saas_control/tests` 现有 40 项测试通过。
 - 本地生产等价栈已实现：一条 PowerShell 命令启动 Next.js、FastAPI、PostgreSQL、Redis 和 worker；本地登录、组织/项目选择、四产品入口及任务状态可用。
 - PostgreSQL 与 Redis 已通过显式 bind mount 固定到 `E:\DockerData\gpu-saas`；已实测容器重启后组织、项目和任务保留。
-- 已实测服务健康、任务幂等与 worker 完成、PostgreSQL 跨租户 RLS 拒绝、Next.js 生产构建和四产品共 152 项回归测试。
+- 已实测服务健康、任务幂等与 worker 完成、PostgreSQL 跨租户 RLS 拒绝、Next.js 生产构建和全仓库 194 项回归测试。
 - GPU Data 真实闭环已完成并实测：四表样例/上传、持久化数据集、异步真实分析、质量阻断、结果页和四类报告下载；样例得到 1100 USD、12 张 GPU、1 个闲置候选，坏数据被阻断且未发布正式成本。
 - GPU Data 的幂等提交、四个下载文件、容器重启持久化、跨租户读写拒绝和 worker 依赖重启恢复均已实测。
 - GPU Data 已使用 Alibaba PAI 2020 真实 T4 作业/传感器切片与 2026-09-14 查询的 Azure East US 官方公开零售价完成独立基准验证；20 张 GPU、2590.025833 GPU-hours、1362.353588 USD 对照成本、2.645860% 利用率中位数和 84.972965% P95 与产品结果一致。
@@ -37,7 +37,7 @@
 - GPU Optimize 负责约束下的配置方案；当前只完成容量优化阶段。
 - GPU Improve 负责行动台账、前后对比和实际收益验证。
 - GPU Forecast 负责时间回测、预测区间、容量情景和采购预算计划。
-- 不把规划功能写成已上线；不自动修改生产资源；公开演示只使用合成数据。
+- 不把规划功能写成已上线；不自动修改生产资源；公开演示只使用公开数据与明确标记的合成字段。
 - Docker 持久数据继续使用 E:\DockerData，不得迁移到 C 盘。
 - 本阶段仅实现本地开发登录与受控产品入口；不实现正式连接器、支付、企业 SSO、备案或自动资源变更。
 - 理论节省、批准节省和实际收益必须分开。
