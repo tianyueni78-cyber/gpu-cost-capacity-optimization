@@ -53,9 +53,12 @@ class LocalStackContractTest(unittest.TestCase):
         dockerfile = (ROOT / "saas_control" / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn("COPY gpu-data/src", dockerfile)
         self.assertIn("COPY gpu-data/sample_data", dockerfile)
+        self.assertIn("COPY gpu-data/validation/alibaba_t4/source", dockerfile)
 
     def test_docker_build_contexts_exclude_generated_files(self):
-        self.assertIn("!saas_control/**", (ROOT / ".dockerignore").read_text(encoding="utf-8"))
+        root_ignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
+        self.assertIn("!saas_control/**", root_ignore)
+        self.assertIn("!gpu-data/validation/alibaba_t4/source/**", root_ignore)
         web_ignore = (ROOT / "web" / ".dockerignore").read_text(encoding="utf-8")
         self.assertIn("node_modules", web_ignore)
         self.assertIn(".next", web_ignore)

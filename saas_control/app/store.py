@@ -9,7 +9,8 @@ from psycopg.rows import dict_row
 from redis import Redis
 
 from .domain import Product, TenantContext
-from .gpu_data_runner import inspect_files, run_analysis
+from .gpu_data_runner import inspect_files, prepare_public_files, run_analysis
+from .gpu_optimize_runner import build_recommendations
 
 
 class PostgresStore:
@@ -22,9 +23,10 @@ class PostgresStore:
         return psycopg.connect(self.database_url, row_factory=dict_row)
 
     def ensure_gpu_data_schema(self):
-        migration = Path(__file__).parents[1] / "migrations" / "003_gpu_data.sql"
         with self._connect() as conn:
-            conn.execute(migration.read_text(encoding="utf-8"))
+            for name in ("003_gpu_data.sql", "004_public_optimize.sql"):
+                migration = Path(__file__).parents[1] / "migrations" / name
+                conn.execute(migration.read_text(encoding="utf-8"))
 
     def authenticate(self, user_id: str, _password: str):
         with self._connect() as conn, conn.cursor() as cur:
@@ -126,6 +128,14 @@ class PostgresStore:
                  for role in ("inventory", "usage", "billing", "sla")}
         return self.create_dataset(tenant, files, "SAMPLE")
 
+    def create_public_dataset(self, tenant: TenantContext, source_root: Path):
+        output = self.data_root / "validation" / "prepared" / f"public-{uuid4()}"
+        try:
+            files = prepare_public_files(source_root, output)
+            return self.create_dataset(tenant, files, "PUBLIC")
+        finally:
+            shutil.rmtree(output, ignore_errors=True)
+
     def get_dataset(self, tenant: TenantContext, dataset_id: str):
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(
@@ -190,6 +200,37 @@ class PostgresStore:
                 (tenant.organization_id, tenant.project_id, artifact_id),
             )
             return cur.fetchone()
+
+    def create_recommendations(self, tenant: TenantContext, dataset_id: str):
+        result = self.get_analysis(tenant, dataset_id)
+        if not result:
+            return None
+        if result["status"] != "SUCCEEDED":
+            raise ValueError("数据质量未通过，不能生成优化建议")
+        recommendations = build_recommendations(result)
+        with self._connect() as conn, conn.cursor() as cur:
+            for item in recommendations:
+                cur.execute(
+                    """insert into optimization_recommendations
+                       (organization_id,project_id,result_id,dataset_id,recommendation_key,payload)
+                       values (%s,%s,%s,%s,%s,%s::jsonb)
+                       on conflict (result_id,recommendation_key) do update set payload=excluded.payload""",
+                    (tenant.organization_id, tenant.project_id, result["result_id"], dataset_id,
+                     item["recommendation_key"], json.dumps(item, ensure_ascii=False)),
+                )
+        return self.get_recommendations(tenant, dataset_id)
+
+    def get_recommendations(self, tenant: TenantContext, dataset_id: str):
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """select recommendation_id::text, payload, created_at
+                   from optimization_recommendations
+                   where organization_id=%s and project_id=%s and dataset_id=%s
+                   order by created_at,recommendation_key""",
+                (tenant.organization_id, tenant.project_id, dataset_id),
+            )
+            return [dict(row["payload"], recommendation_id=row["recommendation_id"], created_at=row["created_at"])
+                    for row in cur.fetchall()]
 
     def process_gpu_data_job(self, job):
         with self._connect() as conn, conn.cursor() as cur:

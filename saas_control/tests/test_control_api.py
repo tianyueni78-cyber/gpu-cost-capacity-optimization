@@ -43,6 +43,9 @@ class FakeStore:
     def create_sample_dataset(self, tenant, _sample_root):
         return {"dataset_id": "DATASET-1", "source_type": "SAMPLE", "status": "READY", "row_counts": {"inventory": 2}}
 
+    def create_public_dataset(self, tenant, _source_root):
+        return {"dataset_id": "DATASET-PUBLIC", "source_type": "PUBLIC", "status": "READY", "row_counts": {"inventory": 8}}
+
     def create_dataset(self, tenant, files, source_type):
         return {"dataset_id": "DATASET-UPLOAD", "source_type": source_type, "status": "READY", "files": list(files)}
 
@@ -56,6 +59,14 @@ class FakeStore:
 
     def get_analysis(self, tenant, dataset_id):
         return {"dataset_id": dataset_id, "status": "SUCCEEDED", "summary": {"total_cost_usd": 1100}}
+
+    def create_recommendations(self, tenant, dataset_id):
+        if dataset_id != "DATASET-1":
+            return None
+        return [{"recommendation_id": "REC-1", "review_status": "待审核", "theoretical_savings_usd": 0}]
+
+    def get_recommendations(self, tenant, dataset_id):
+        return self.create_recommendations(tenant, dataset_id)
 
 
 class LocalControlApiTest(unittest.TestCase):
@@ -153,6 +164,17 @@ class LocalControlApiTest(unittest.TestCase):
         self.assertEqual(submitted.status_code, 202)
         result = self.client.get("/v1/gpu-data/datasets/DATASET-1/result", headers=headers)
         self.assertEqual(result.json()["summary"]["total_cost_usd"], 1100)
+
+    def test_public_case_and_optimize_recommendation_contract(self):
+        headers = {"Authorization": "Bearer selected-token"}
+        dataset = self.client.post("/v1/gpu-data/datasets/public-case", headers=headers)
+        self.assertEqual(dataset.status_code, 201)
+        self.assertEqual(dataset.json()["source_type"], "PUBLIC")
+        created = self.client.post("/v1/gpu-optimize/datasets/DATASET-1/recommendations", headers=headers)
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(created.json()["recommendations"][0]["review_status"], "待审核")
+        listed = self.client.get("/v1/gpu-optimize/datasets/DATASET-1/recommendations", headers=headers)
+        self.assertEqual(listed.json()["recommendations"][0]["theoretical_savings_usd"], 0)
 
     def test_upload_requires_exactly_four_csv_files(self):
         headers = {"Authorization": "Bearer selected-token"}

@@ -1,0 +1,18 @@
+{
+  "case_id": "alibaba-pai-t4-azure-eastus",
+  "query_date": "2026-09-14",
+  "alibaba_source": "https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020",
+  "alibaba_data_mirror": "https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data",
+  "azure_price_api": "https://prices.azure.com/api/retail/prices",
+  "azure_query": "serviceName eq 'Virtual Machines' and armRegionName eq 'eastus' and armSkuName eq 'Standard_NC4as_T4_v3' and priceType eq 'Consumption'; Linux non-Spot exact sku selected",
+  "raw_checksums": {
+    "pai_job_table.tar.gz": "5aad7f7caac501136d14ed6a48e40546f825d7b0617a3a4f337e2348fe0a6cb0",
+    "pai_task_table.tar.gz": "cd1d6dc3215d2a8607ccf6b6dd952b5db776df86926c73259fea7c1499ac40e5",
+    "pai_sensor_table.tar.gz": "9a0b82e8bdf3949281e4ba1423d9b4b34847e52799eecb138966de46da69c7a0"
+  },
+  "limitations": [
+    "Alibaba trace has no cloud bill or commercial SLA.",
+    "Azure price is a public Linux VM retail comparator, not Alibaba cost or a customer negotiated price.",
+    "Team and SLA fields are derived/synthetic and must not be treated as source facts."
+  ]
+}

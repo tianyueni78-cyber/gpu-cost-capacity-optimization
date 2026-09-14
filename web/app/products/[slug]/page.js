@@ -17,7 +17,7 @@ export default async function ProductPage({ params }) {
   if (!product) return <main><h1>产品不存在</h1><a href="/">返回工作台</a></main>;
   return <main><section className="panel product-panel"><p className="eyebrow">PRODUCT ENTRY</p>
     <h1>{product[0]}</h1><p>{product[1]}</p>
-    <p>{slug === "gpu-data" ? "上传数据后由后台调用现有 GPU Data 计算核心，并保存可回查结果。" : "当前通过受控独立页面接入；计算核心保持原样。"}</p>
+    <p>{slug === "gpu-data" ? "上传数据后由后台调用现有 GPU Data 计算核心，并保存可回查结果。" : slug === "gpu-optimize" ? "读取已通过门禁的 GPU Data 结果，生成保守且可审核的建议。" : "当前通过受控独立页面接入；计算核心保持原样。"}</p>
     <ProductClient slug={slug} />
     <a href="/">← 返回工作台</a>
   </section></main>;

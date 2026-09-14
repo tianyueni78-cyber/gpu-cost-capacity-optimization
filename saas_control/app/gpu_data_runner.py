@@ -13,6 +13,7 @@ if str(GPU_DATA_ROOT) not in sys.path:
 from src.audit import AUDIT_COLUMNS, audit_tables  # noqa: E402
 from src.baseline import build_baseline  # noqa: E402
 from src.intake import apply_mapping, read_csv_bytes, suggest_mapping, validate_mapping  # noqa: E402
+from src.public_validation import prepare_validation_cases  # noqa: E402
 from src.reporting import build_csv_exports, build_markdown_report  # noqa: E402
 from src.schema import TABLE_SPECS  # noqa: E402
 from src.signals import build_investigation_signals  # noqa: E402
@@ -38,6 +39,11 @@ def inspect_files(files: dict[str, tuple[str, bytes]]):
         "period_start": valid.min().isoformat() if not valid.empty else None,
         "period_end": valid.max().isoformat() if not valid.empty else None,
     }
+
+
+def prepare_public_files(source_root: Path, output_root: Path):
+    normal = prepare_validation_cases(source_root, output_root)["normal"]
+    return {role: (f"{role}.csv", (normal / f"{role}.csv").read_bytes()) for role in TABLE_SPECS}
 
 
 def run_analysis(source_dir: Path, output_dir: Path):

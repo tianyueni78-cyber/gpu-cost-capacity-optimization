@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from .domain import Permission, Product, TenantContext, authorize
@@ -141,6 +141,15 @@ def create_app(
             raise HTTPException(status_code=403, detail=str(exc)) from exc
         return store.create_sample_dataset(tenant, Path(__file__).parents[2] / "gpu-data" / "sample_data")
 
+    @app.post("/v1/gpu-data/datasets/public-case", status_code=201)
+    def public_dataset(tenant: TenantContext = Depends(current_tenant)):
+        try:
+            authorize(tenant.role, Permission.RUN_ANALYSIS, tenant.subscription_active)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        source = Path(__file__).parents[2] / "gpu-data" / "validation" / "alibaba_t4" / "source"
+        return store.create_public_dataset(tenant, source)
+
     @app.post("/v1/gpu-data/datasets", status_code=201)
     def upload_dataset(payload: DatasetUpload, tenant: TenantContext = Depends(current_tenant)):
         try:
@@ -197,5 +206,47 @@ def create_app(
         if not item:
             raise HTTPException(status_code=404, detail="报告不存在")
         return FileResponse(item["storage_path"], filename=item["file_name"], media_type=item["mime_type"])
+
+    @app.post("/v1/gpu-optimize/datasets/{dataset_id}/recommendations", status_code=201)
+    def create_recommendations(dataset_id: str, tenant: TenantContext = Depends(current_tenant)):
+        try:
+            authorize(tenant.role, Permission.RUN_ANALYSIS, tenant.subscription_active)
+            items = store.create_recommendations(tenant, dataset_id)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        if items is None:
+            raise HTTPException(status_code=404, detail="尚无可用的 GPU Data 分析结果")
+        return {"dataset_id": dataset_id, "recommendations": items}
+
+    @app.get("/v1/gpu-optimize/datasets/{dataset_id}/recommendations")
+    def recommendations(dataset_id: str, tenant: TenantContext = Depends(current_tenant)):
+        return {"dataset_id": dataset_id, "recommendations": store.get_recommendations(tenant, dataset_id)}
+
+    @app.get("/v1/gpu-optimize/datasets/{dataset_id}/report")
+    def recommendation_report(dataset_id: str, tenant: TenantContext = Depends(current_tenant)):
+        items = store.get_recommendations(tenant, dataset_id)
+        lines = ["# GPU Optimize 建议报告", "", f"数据集：{dataset_id}", ""]
+        for item in items:
+            lines.extend([
+                f"## {item['target']}｜{item['review_status']}",
+                f"- 建议：{item['recommended_action']}",
+                f"- 证据：{item['trigger_metric']}",
+                f"- 观察窗口：{item['observation_window']}",
+                f"- 规则阈值：{item['rule_threshold']}",
+                f"- 证据覆盖率：{item['evidence_coverage_pct']}%",
+                f"- 相关成本：${item['related_cost_usd']:.2f}",
+                f"- 理论节省：${item['theoretical_savings_usd']:.2f}",
+                f"- 证据等级：{item['evidence_level']}",
+                f"- SLA 风险：{item['sla_risk']}",
+                f"- 限制：{item['limitations']}",
+                f"- 人工步骤：{item['manual_steps']}",
+                f"- 来源结果：{item['source_result_id']}", "",
+            ])
+        return Response(
+            "\n".join(lines), media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="gpu-optimize-report.md"'},
+        )
 
     return app

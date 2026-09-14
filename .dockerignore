@@ -6,3 +6,7 @@
 !gpu-data/src/**
 !gpu-data/sample_data/
 !gpu-data/sample_data/**
+!gpu-data/validation/
+!gpu-data/validation/alibaba_t4/
+!gpu-data/validation/alibaba_t4/source/
+!gpu-data/validation/alibaba_t4/source/**

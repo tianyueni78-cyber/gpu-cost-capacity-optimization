@@ -23,7 +23,7 @@
 
 首次运行会自动生成本地 `.env`，Docker 持久数据固定保存在 `E:\DockerData\gpu-saas`。统一入口为 http://localhost:3000，登录邮箱和密码可在本地 `.env` 的 `LOCAL_DEV_EMAIL`、`LOCAL_DEV_PASSWORD` 中查看。
 
-登录并选择组织与项目后进入 **GPU Data**。可以直接选择“使用样例数据”，也可以分别上传 `inventory.csv`、`usage.csv`、`billing.csv`、`sla.csv`。后台 worker 会调用既有 GPU Data 审计、基线和调查线索计算，结果与报告在重启后仍可读取。
+登录并选择组织与项目后进入 **GPU Data**。可以选择 Alibaba PAI 公开验证案例、合成样例，或分别上传 `inventory.csv`、`usage.csv`、`billing.csv`、`sla.csv`。后台 worker 会调用既有 GPU Data 审计、基线和调查线索计算，结果与报告在重启后仍可读取。通过质量门的公开案例可以继续进入 **GPU Optimize**，生成有来源、限制和人工审核状态的保守建议。
 
 样例成功标准：总成本 `1100 USD`、GPU 数量 `12`，并生成 Markdown 报告、闲置候选、数据质量和成本分摊四个下载文件。阻断级数据质量问题不会发布正式成本结论。
 
@@ -43,6 +43,7 @@
 - [四平台正式规格](四平台正式规格.md)
 - [GPU Improve 正式规格](gpu-improve/正式规格.md)
 - [GPU Forecast 正式规格](gpu-forecast/正式规格.md)
+- [GPU Data 公开数据专业验证](docs/validation/public-gpu-data.md)
 
 ## 运行已完成的平台
 

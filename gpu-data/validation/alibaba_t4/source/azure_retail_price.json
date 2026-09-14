@@ -1,0 +1,34 @@
+{
+  "currencyCode": "USD",
+  "tierMinimumUnits": 0.0,
+  "retailPrice": 0.526,
+  "unitPrice": 0.526,
+  "armRegionName": "eastus",
+  "location": "US East",
+  "effectiveStartDate": "2021-11-01T00:00:00Z",
+  "meterId": "b04b4869-b6a3-527b-aec2-650a6fb07224",
+  "meterName": "NC4as T4 v3",
+  "productId": "DZH318Z0DF49",
+  "skuId": "DZH318Z0DF49/001P",
+  "productName": "Virtual Machines NCasT4 v3 Series",
+  "skuName": "NC4as T4 v3",
+  "serviceName": "Virtual Machines",
+  "serviceId": "DZH313Z7MMC8",
+  "serviceFamily": "Compute",
+  "unitOfMeasure": "1 Hour",
+  "type": "Consumption",
+  "isPrimaryMeterRegion": true,
+  "armSkuName": "Standard_NC4as_T4_v3",
+  "savingsPlan": [
+    {
+      "unitPrice": 0.2474304,
+      "retailPrice": 0.2474304,
+      "term": "3 Years"
+    },
+    {
+      "unitPrice": 0.3556812,
+      "retailPrice": 0.3556812,
+      "term": "1 Year"
+    }
+  ]
+}

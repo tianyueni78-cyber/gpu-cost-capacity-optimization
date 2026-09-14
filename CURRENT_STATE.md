@@ -2,7 +2,7 @@
 
 ## Current Goal
 
-在现有统一网页中打通 GPU Data 真实闭环：样例/上传四表、持久化数据集、worker 调用既有审计与分析、保存并展示结果、下载报告。
+用 Alibaba PAI 公开 GPU trace 与 Azure 官方零售价验证 GPU Data，并将通过质量门禁的分析结果接入 GPU Optimize，形成可审核、持久化的最小建议闭环。
 
 ## Completed and Validated
 
@@ -22,6 +22,12 @@
 - 已实测服务健康、任务幂等与 worker 完成、PostgreSQL 跨租户 RLS 拒绝、Next.js 生产构建和四产品共 152 项回归测试。
 - GPU Data 真实闭环已完成并实测：四表样例/上传、持久化数据集、异步真实分析、质量阻断、结果页和四类报告下载；样例得到 1100 USD、12 张 GPU、1 个闲置候选，坏数据被阻断且未发布正式成本。
 - GPU Data 的幂等提交、四个下载文件、容器重启持久化、跨租户读写拒绝和 worker 依赖重启恢复均已实测。
+- GPU Data 已使用 Alibaba PAI 2020 真实 T4 作业/传感器切片与 2026-09-14 查询的 Azure East US 官方公开零售价完成独立基准验证；20 张 GPU、2590.025833 GPU-hours、1362.353588 USD 对照成本、2.645860% 利用率中位数和 84.972965% P95 与产品结果一致。
+- 公开数据转换保留来源、SHA-256、查询日期、字段证据和限制；团队、SLA、成本及活跃 GPU 等派生/合成字段没有写成源数据事实。
+- normal、必需字段缺失和遥测缺失三个案例已通过真实 Docker API/worker 验证；两个异常案例均被质量门阻断，缺失利用率没有转成 0。
+- 通过质量门的 GPU Data 信号可在统一网页进入 GPU Optimize；7 条建议已持久化，包含证据、观察窗口、阈值、覆盖率、相关成本、SLA 风险、限制、人工步骤、审核状态和来源 ID。公开证据不足时理论节省固定为 0。
+- 公开闭环已实测重复生成幂等、报告下载、全栈重启后结果保留、另一租户读取为 0 和跨租户写入被 RLS 拒绝；PostgreSQL、Redis、API、worker、web 均健康。
+- 完整回归共 194 项通过：SaaS 40、GPU Data 31、GPU Optimize 38、GPU Improve 45、GPU Forecast 40；Next.js 生产构建通过。
 
 ## Confirmed Decisions and Constraints
 
@@ -65,4 +71,4 @@
 
 ## Next Concrete Action
 
-以公开或脱敏真实数据验证 GPU Data 的字段映射和成本对账，再按同一最小闭环接入 GPU Optimize。
+使用一份经脱敏的真实客户账单、集群遥测与 SLA 范围运行同一闭环，人工审核建议的可执行性，并把批准、执行和实际收益结果接入 GPU Improve；在此之前不宣称公开对照成本为客户成本，也不宣称节省金额。
