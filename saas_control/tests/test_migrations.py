@@ -6,6 +6,7 @@ class MigrationContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sql = Path("saas_control/migrations/001_control_plane.sql").read_text(encoding="utf-8").lower()
+        cls.gpu_data_sql = Path("saas_control/migrations/003_gpu_data.sql").read_text(encoding="utf-8").lower()
 
     def test_control_plane_tables_enable_rls(self):
         tables = ("organizations", "memberships", "projects", "product_entitlements", "subscriptions", "connectors", "jobs", "audit_events")
@@ -24,6 +25,12 @@ class MigrationContractTest(unittest.TestCase):
     def test_rls_uses_authenticated_membership(self):
         self.assertIn("auth.uid()", self.sql)
         self.assertIn("is_organization_member", self.sql)
+
+    def test_gpu_data_tables_are_tenant_scoped_and_rls_enabled(self):
+        for table in ("datasets", "dataset_files", "analysis_results", "report_artifacts"):
+            self.assertIn(f"create table if not exists {table}", self.gpu_data_sql)
+            self.assertIn(f"alter table {table} enable row level security", self.gpu_data_sql)
+        self.assertGreaterEqual(self.gpu_data_sql.count("foreign key (organization_id, project_id)"), 4)
 
 
 if __name__ == "__main__":

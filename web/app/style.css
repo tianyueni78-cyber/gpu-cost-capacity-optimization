@@ -24,3 +24,15 @@ button { background: #72d6c9; color: #07111f; border: 0; font-weight: 700; curso
 .status .ok { background: #114b40; color: #9cf4d8; }
 .status .error, .error { color: #ff9f9f; }
 .product-action { margin: 24px 0; }
+.product-panel { max-width: none; margin: 0; }
+.muted { color: #a9b8c8; }
+.gpu-flow section { margin: 24px 0; padding-top: 18px; border-top: 1px solid #294966; }
+.file-grid, .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+.file-grid label { padding: 12px; border: 1px solid #46627c; border-radius: 10px; }
+.file-grid input { margin: 8px 0 0; }
+.file-list, .downloads { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.file-list span, .metric { padding: 12px; border-radius: 10px; background: #13283d; }
+.metric { display: flex; flex-direction: column; gap: 5px; }
+.metric strong { font-size: 1.25rem; }
+.notice { padding: 10px 12px; background: #4f3d0c; border-radius: 8px; }
+.signal { padding: 12px; margin: 10px 0; border-left: 4px solid #72d6c9; background: #102438; }

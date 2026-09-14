@@ -1,0 +1,7 @@
+usage_record_id,timestamp_utc,resource_pool_id,allocated_gpu_count,active_gpu_count,gpu_utilization_pct,memory_utilization_pct,availability_pct
+USE-1,2026-01-01T00:00:00Z,POOL-H100,8,1,12,18,99.95
+USE-2,2026-01-01T01:00:00Z,POOL-H100,8,1,10,16,99.95
+USE-3,2026-01-01T02:00:00Z,POOL-H100,8,1,11,17,99.95
+USE-4,2026-01-01T03:00:00Z,POOL-H100,8,1,9,15,99.95
+USE-5,2026-01-01T00:00:00Z,POOL-A100,4,3,72,68,99.90
+USE-6,2026-01-01T01:00:00Z,POOL-A100,4,3,75,70,99.90

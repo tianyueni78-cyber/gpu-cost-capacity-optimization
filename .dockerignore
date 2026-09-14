@@ -1,3 +1,8 @@
 *
 !saas_control/
 !saas_control/**
+!gpu-data/
+!gpu-data/src/
+!gpu-data/src/**
+!gpu-data/sample_data/
+!gpu-data/sample_data/**

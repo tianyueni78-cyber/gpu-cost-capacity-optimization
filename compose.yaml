@@ -38,6 +38,9 @@ services:
       LOCAL_DEV_EMAIL: ${LOCAL_DEV_EMAIL:-student@example.com}
       LOCAL_DEV_PASSWORD: ${LOCAL_DEV_PASSWORD:?set LOCAL_DEV_PASSWORD in .env}
       LOCAL_DEV_USER_ID: 33333333-3333-3333-3333-333333333333
+      DATA_ROOT: /data
+    volumes:
+      - ${DOCKER_DATA_ROOT:-E:/DockerData/gpu-saas}:/data
     ports:
       - "8000:8000"
     depends_on:
@@ -55,9 +58,14 @@ services:
     build:
       context: .
       dockerfile: saas_control/Dockerfile
+    restart: unless-stopped
     command: ["python", "-m", "saas_control.app.worker"]
     environment: *control_environment
+    volumes:
+      - ${DOCKER_DATA_ROOT:-E:/DockerData/gpu-saas}:/data
     depends_on:
+      api:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       redis:

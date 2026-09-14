@@ -40,6 +40,23 @@ class FakeStore:
     def status(self):
         return {"database": "ok", "redis": "ok", "worker": "ok"}
 
+    def create_sample_dataset(self, tenant, _sample_root):
+        return {"dataset_id": "DATASET-1", "source_type": "SAMPLE", "status": "READY", "row_counts": {"inventory": 2}}
+
+    def create_dataset(self, tenant, files, source_type):
+        return {"dataset_id": "DATASET-UPLOAD", "source_type": source_type, "status": "READY", "files": list(files)}
+
+    def get_dataset(self, tenant, dataset_id):
+        return {"dataset_id": dataset_id, "status": "READY"} if dataset_id == "DATASET-1" else None
+
+    def submit_gpu_data_analysis(self, tenant, dataset_id, key):
+        if dataset_id != "DATASET-1":
+            return None
+        return {"job_id": "GPU-DATA-JOB", "dataset_id": dataset_id, "idempotency_key": key, "status": "QUEUED"}
+
+    def get_analysis(self, tenant, dataset_id):
+        return {"dataset_id": dataset_id, "status": "SUCCEEDED", "summary": {"total_cost_usd": 1100}}
+
 
 class LocalControlApiTest(unittest.TestCase):
     def setUp(self):
@@ -109,6 +126,38 @@ class LocalControlApiTest(unittest.TestCase):
             headers={"Authorization": "Bearer viewer-token"},
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_viewer_cannot_create_gpu_data_dataset(self):
+        client = TestClient(create_app(
+            lambda _token: {
+                "sub": "USER-A", "organization_id": "ORG-A", "project_id": "PROJECT-A",
+                "role": "VIEWER", "subscription_active": True,
+            },
+            store=self.store,
+        ))
+        response = client.post(
+            "/v1/gpu-data/datasets/sample",
+            headers={"Authorization": "Bearer viewer-token"},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_sample_dataset_can_run_and_return_real_result_contract(self):
+        headers = {"Authorization": "Bearer selected-token"}
+        dataset = self.client.post("/v1/gpu-data/datasets/sample", headers=headers)
+        self.assertEqual(dataset.status_code, 201)
+        submitted = self.client.post(
+            "/v1/gpu-data/datasets/DATASET-1/analyze",
+            json={"idempotency_key": "sample-analysis"},
+            headers=headers,
+        )
+        self.assertEqual(submitted.status_code, 202)
+        result = self.client.get("/v1/gpu-data/datasets/DATASET-1/result", headers=headers)
+        self.assertEqual(result.json()["summary"]["total_cost_usd"], 1100)
+
+    def test_upload_requires_exactly_four_csv_files(self):
+        headers = {"Authorization": "Bearer selected-token"}
+        invalid = self.client.post("/v1/gpu-data/datasets", json={"files": {}}, headers=headers)
+        self.assertEqual(invalid.status_code, 422)
 
 
 if __name__ == "__main__":

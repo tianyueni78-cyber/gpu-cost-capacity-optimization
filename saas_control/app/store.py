@@ -1,20 +1,30 @@
 import json
 import os
+import shutil
+from pathlib import Path
+from uuid import uuid4
 
 import psycopg
 from psycopg.rows import dict_row
 from redis import Redis
 
 from .domain import Product, TenantContext
+from .gpu_data_runner import inspect_files, run_analysis
 
 
 class PostgresStore:
-    def __init__(self, database_url: str, redis_url: str):
+    def __init__(self, database_url: str, redis_url: str, data_root: str = "/data"):
         self.database_url = database_url
         self.redis = Redis.from_url(redis_url, decode_responses=True)
+        self.data_root = Path(data_root)
 
     def _connect(self):
         return psycopg.connect(self.database_url, row_factory=dict_row)
+
+    def ensure_gpu_data_schema(self):
+        migration = Path(__file__).parents[1] / "migrations" / "003_gpu_data.sql"
+        with self._connect() as conn:
+            conn.execute(migration.read_text(encoding="utf-8"))
 
     def authenticate(self, user_id: str, _password: str):
         with self._connect() as conn, conn.cursor() as cur:
@@ -66,17 +76,154 @@ class PostgresStore:
                 on conflict (organization_id, idempotency_key)
                 do update set idempotency_key = excluded.idempotency_key
                 returning job_id::text, organization_id::text, project_id::text,
-                          product, operation, idempotency_key, status, progress
+                          product, operation, idempotency_key, status, progress, (xmax = 0) created
                 """,
                 (tenant.organization_id, tenant.project_id, product.value, operation, key),
             )
             job = cur.fetchone()
-        self.redis.lpush("gpu:jobs", json.dumps({
-            "job_id": job["job_id"],
-            "organization_id": job["organization_id"],
-            "project_id": job["project_id"],
-        }))
+        created = job.pop("created")
+        if created:
+            self.redis.lpush("gpu:jobs", json.dumps({
+                "job_id": job["job_id"],
+                "organization_id": job["organization_id"],
+                "project_id": job["project_id"],
+            }))
         return job
+
+    def create_dataset(self, tenant: TenantContext, files: dict[str, tuple[str, bytes]], source_type: str):
+        dataset_id = str(uuid4())
+        folder = self.data_root / "uploads" / tenant.organization_id / tenant.project_id / dataset_id
+        folder.mkdir(parents=True, exist_ok=False)
+        try:
+            inspection = inspect_files(files)
+            row_counts = inspection["row_counts"]
+            for role, (file_name, content) in files.items():
+                target = folder / f"{role}.csv"
+                target.write_bytes(content)
+            with self._connect() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """insert into datasets
+                       (organization_id, project_id, dataset_id, source_type, row_counts, period_start, period_end)
+                       values (%s,%s,%s,%s,%s::jsonb,%s,%s)""",
+                    (tenant.organization_id, tenant.project_id, dataset_id, source_type, json.dumps(row_counts),
+                     inspection["period_start"], inspection["period_end"]),
+                )
+                for role, (file_name, _content) in files.items():
+                    cur.execute(
+                        """insert into dataset_files
+                           (organization_id, project_id, dataset_id, role, file_name, storage_path, row_count)
+                           values (%s,%s,%s,%s,%s,%s,%s)""",
+                        (tenant.organization_id, tenant.project_id, dataset_id, role, file_name,
+                         str(folder / f"{role}.csv"), row_counts[role]),
+                    )
+        except Exception:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
+        return self.get_dataset(tenant, dataset_id)
+
+    def create_sample_dataset(self, tenant: TenantContext, sample_root: Path):
+        files = {role: (f"{role}.csv", (sample_root / f"{role}.csv").read_bytes())
+                 for role in ("inventory", "usage", "billing", "sla")}
+        return self.create_dataset(tenant, files, "SAMPLE")
+
+    def get_dataset(self, tenant: TenantContext, dataset_id: str):
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """select dataset_id::text, source_type, status, row_counts, period_start, period_end, created_at
+                   from datasets where organization_id=%s and project_id=%s and dataset_id=%s""",
+                (tenant.organization_id, tenant.project_id, dataset_id),
+            )
+            dataset = cur.fetchone()
+            if not dataset:
+                return None
+            cur.execute(
+                """select role, file_name, row_count from dataset_files
+                   where organization_id=%s and project_id=%s and dataset_id=%s order by role""",
+                (tenant.organization_id, tenant.project_id, dataset_id),
+            )
+            dataset["files"] = cur.fetchall()
+            return dataset
+
+    def submit_gpu_data_analysis(self, tenant: TenantContext, dataset_id: str, key: str):
+        if not self.get_dataset(tenant, dataset_id):
+            return None
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """insert into jobs (organization_id, project_id, product, operation, idempotency_key, status, dataset_id)
+                   values (%s,%s,'gpu-data','ANALYZE',%s,'QUEUED',%s)
+                   on conflict (organization_id, idempotency_key)
+                   do update set idempotency_key=excluded.idempotency_key
+                   returning job_id::text, organization_id::text, project_id::text, product, operation,
+                             idempotency_key, status, progress, dataset_id::text, (xmax = 0) created""",
+                (tenant.organization_id, tenant.project_id, key, dataset_id),
+            )
+            job = cur.fetchone()
+        created = job.pop("created")
+        if created:
+            self.redis.lpush("gpu:jobs", json.dumps(job))
+        return job
+
+    def get_analysis(self, tenant: TenantContext, dataset_id: str):
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """select result_id::text, dataset_id::text, job_id::text, status, summary, audit, signals, created_at
+                   from analysis_results where organization_id=%s and project_id=%s and dataset_id=%s
+                   order by created_at desc limit 1""",
+                (tenant.organization_id, tenant.project_id, dataset_id),
+            )
+            result = cur.fetchone()
+            if not result:
+                return None
+            cur.execute(
+                """select artifact_id::text, kind, file_name, mime_type from report_artifacts
+                   where organization_id=%s and project_id=%s and result_id=%s order by kind""",
+                (tenant.organization_id, tenant.project_id, result["result_id"]),
+            )
+            result["artifacts"] = cur.fetchall()
+            return result
+
+    def get_artifact(self, tenant: TenantContext, artifact_id: str):
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """select file_name, storage_path, mime_type from report_artifacts
+                   where organization_id=%s and project_id=%s and artifact_id=%s""",
+                (tenant.organization_id, tenant.project_id, artifact_id),
+            )
+            return cur.fetchone()
+
+    def process_gpu_data_job(self, job):
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("update jobs set status='RUNNING', progress=20 where job_id=%s and status='QUEUED'", (job["job_id"],))
+            cur.execute("update datasets set status='ANALYZING' where dataset_id=%s", (job["dataset_id"],))
+            cur.execute("select storage_path from dataset_files where dataset_id=%s limit 1", (job["dataset_id"],))
+            source_dir = Path(cur.fetchone()["storage_path"]).parent
+        result_id = str(uuid4())
+        output_dir = source_dir / "results" / result_id
+        outcome = run_analysis(source_dir, output_dir)
+        job_status = "SUCCEEDED" if outcome["status"] == "SUCCEEDED" else "FAILED"
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """insert into analysis_results
+                   (organization_id,project_id,result_id,dataset_id,job_id,status,summary,audit,signals)
+                   values (%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb)""",
+                (job["organization_id"], job["project_id"], result_id, job["dataset_id"], job["job_id"],
+                 outcome["status"], json.dumps(outcome["summary"]), json.dumps(outcome["audit"], ensure_ascii=False),
+                 json.dumps(outcome["signals"], ensure_ascii=False)),
+            )
+            for artifact in outcome["artifacts"]:
+                path = Path(artifact["path"])
+                cur.execute(
+                    """insert into report_artifacts
+                       (organization_id,project_id,result_id,kind,file_name,storage_path,mime_type)
+                       values (%s,%s,%s,%s,%s,%s,%s)""",
+                    (job["organization_id"], job["project_id"], result_id, artifact["kind"], path.name,
+                     str(path), artifact["mime_type"]),
+                )
+            cur.execute("update datasets set status=%s where dataset_id=%s", (outcome["status"], job["dataset_id"]))
+            cur.execute(
+                """update jobs set status=%s, progress=100, public_error_code=%s where job_id=%s""",
+                (job_status, None if job_status == "SUCCEEDED" else "DATA_QUALITY_BLOCKED", job["job_id"]),
+            )
 
     def list_jobs(self, tenant: TenantContext):
         with self._connect() as conn, conn.cursor() as cur:
@@ -114,4 +261,6 @@ class PostgresStore:
 
 
 def from_environment():
-    return PostgresStore(os.environ["DATABASE_URL"], os.environ["REDIS_URL"])
+    store = PostgresStore(os.environ["DATABASE_URL"], os.environ["REDIS_URL"], os.environ.get("DATA_ROOT", "/data"))
+    store.ensure_gpu_data_schema()
+    return store

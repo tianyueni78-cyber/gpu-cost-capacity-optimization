@@ -18,6 +18,9 @@ class LocalStackContractTest(unittest.TestCase):
         for name in ("postgres", "redis", "api", "worker", "web"):
             self.assertIn("healthcheck", services[name])
 
+    def test_worker_recovers_when_dependencies_restart(self):
+        self.assertEqual(self.compose["services"]["worker"]["restart"], "unless-stopped")
+
     def test_state_is_bound_to_e_drive(self):
         services = self.compose["services"]
         self.assertIn("${DOCKER_DATA_ROOT:-E:/DockerData/gpu-saas}/postgres:/var/lib/postgresql/data", services["postgres"]["volumes"])
@@ -40,13 +43,16 @@ class LocalStackContractTest(unittest.TestCase):
 
     def test_product_page_can_create_a_persistent_job(self):
         page = (ROOT / "web" / "app" / "products" / "[slug]" / "product-client.js").read_text(encoding="utf-8")
-        self.assertIn('"/v1/jobs"', page)
+        self.assertIn("/v1/gpu-data/datasets/${dataset.dataset_id}/analyze", page)
         self.assertIn("idempotency_key", page)
 
     def test_python_image_packages_only_the_application(self):
         project = (ROOT / "saas_control" / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('[tool.setuptools.packages.find]', project)
         self.assertIn('include = ["app*"]', project)
+        dockerfile = (ROOT / "saas_control" / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("COPY gpu-data/src", dockerfile)
+        self.assertIn("COPY gpu-data/sample_data", dockerfile)
 
     def test_docker_build_contexts_exclude_generated_files(self):
         self.assertIn("!saas_control/**", (ROOT / ".dockerignore").read_text(encoding="utf-8"))

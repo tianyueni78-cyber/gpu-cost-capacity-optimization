@@ -1,9 +1,13 @@
 from collections.abc import Callable
+import base64
+import binascii
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .domain import Permission, Product, TenantContext, authorize
@@ -23,6 +27,19 @@ class SelectRequest(BaseModel):
 class JobRequest(BaseModel):
     product: Product
     operation: str
+    idempotency_key: str
+
+
+class DatasetFile(BaseModel):
+    file_name: str
+    content_base64: str
+
+
+class DatasetUpload(BaseModel):
+    files: dict[str, DatasetFile]
+
+
+class AnalysisRequest(BaseModel):
     idempotency_key: str
 
 
@@ -115,5 +132,70 @@ def create_app(
     @app.get("/v1/system/status")
     def system_status(tenant: TenantContext = Depends(current_tenant)):
         return store.status()
+
+    @app.post("/v1/gpu-data/datasets/sample", status_code=201)
+    def sample_dataset(tenant: TenantContext = Depends(current_tenant)):
+        try:
+            authorize(tenant.role, Permission.RUN_ANALYSIS, tenant.subscription_active)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        return store.create_sample_dataset(tenant, Path(__file__).parents[2] / "gpu-data" / "sample_data")
+
+    @app.post("/v1/gpu-data/datasets", status_code=201)
+    def upload_dataset(payload: DatasetUpload, tenant: TenantContext = Depends(current_tenant)):
+        try:
+            authorize(tenant.role, Permission.RUN_ANALYSIS, tenant.subscription_active)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        required = {"inventory", "usage", "billing", "sla"}
+        if set(payload.files) != required:
+            raise HTTPException(status_code=422, detail="必须同时提供 inventory、usage、billing 和 sla 四个 CSV")
+        decoded = {}
+        for role, item in payload.files.items():
+            if not item.file_name.lower().endswith(".csv"):
+                raise HTTPException(status_code=422, detail=f"{role} 只接受 CSV 文件")
+            try:
+                content = base64.b64decode(item.content_base64, validate=True)
+            except (ValueError, binascii.Error) as exc:
+                raise HTTPException(status_code=422, detail=f"{role} 文件内容无效") from exc
+            if not content or len(content) > 10 * 1024 * 1024:
+                raise HTTPException(status_code=422, detail=f"{role} 文件必须在 1 字节到 10 MB 之间")
+            decoded[role] = (Path(item.file_name).name, content)
+        try:
+            return store.create_dataset(tenant, decoded, "UPLOAD")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    @app.get("/v1/gpu-data/datasets/{dataset_id}")
+    def dataset(dataset_id: str, tenant: TenantContext = Depends(current_tenant)):
+        item = store.get_dataset(tenant, dataset_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="数据集不存在")
+        return item
+
+    @app.post("/v1/gpu-data/datasets/{dataset_id}/analyze", status_code=202)
+    def analyze_dataset(dataset_id: str, payload: AnalysisRequest, tenant: TenantContext = Depends(current_tenant)):
+        try:
+            authorize(tenant.role, Permission.RUN_ANALYSIS, tenant.subscription_active)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        job = store.submit_gpu_data_analysis(tenant, dataset_id, payload.idempotency_key)
+        if not job:
+            raise HTTPException(status_code=404, detail="数据集不存在")
+        return job
+
+    @app.get("/v1/gpu-data/datasets/{dataset_id}/result")
+    def analysis_result(dataset_id: str, tenant: TenantContext = Depends(current_tenant)):
+        result = store.get_analysis(tenant, dataset_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="分析结果尚未生成")
+        return result
+
+    @app.get("/v1/gpu-data/artifacts/{artifact_id}")
+    def artifact(artifact_id: str, tenant: TenantContext = Depends(current_tenant)):
+        item = store.get_artifact(tenant, artifact_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="报告不存在")
+        return FileResponse(item["storage_path"], filename=item["file_name"], media_type=item["mime_type"])
 
     return app

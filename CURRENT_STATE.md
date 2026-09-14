@@ -2,7 +2,7 @@
 
 ## Current Goal
 
-在 feature/production-saas-foundation 的既有隔离工作树中完成四产品“本地生产等价运行环境”：一条 PowerShell 命令启动 Next.js、FastAPI、PostgreSQL、Redis 和 worker，支持本地登录、组织/项目选择、四产品入口及任务持久化。
+在现有统一网页中打通 GPU Data 真实闭环：样例/上传四表、持久化数据集、worker 调用既有审计与分析、保存并展示结果、下载报告。
 
 ## Completed and Validated
 
@@ -16,10 +16,12 @@
 - 根 `README.md` 已更新为四平台导航、真实完成状态、运行方式和在线案例入口。
 - `compact-context` skill 已安装到本机 Codex skills。
 - GPU Improve 已完成专业对标和正式规格设计，覆盖行动台账、反事实基线、分类验证公式、证据等级、Supabase 数据模型和安全边界。
-- 生产 SaaS 共享底座已完成第一批代码：RBAC/租户上下文、FastAPI 鉴权边界、PostgreSQL 多租户迁移、幂等任务与审计；`saas_control/tests` 现有 15 项测试通过。
+- 生产 SaaS 共享底座包含 RBAC/租户上下文、FastAPI 鉴权边界、PostgreSQL 多租户迁移、幂等任务、审计和 GPU Data 异步闭环；`saas_control/tests` 现有 36 项测试通过。
 - 本地生产等价栈已实现：一条 PowerShell 命令启动 Next.js、FastAPI、PostgreSQL、Redis 和 worker；本地登录、组织/项目选择、四产品入口及任务状态可用。
 - PostgreSQL 与 Redis 已通过显式 bind mount 固定到 `E:\DockerData\gpu-saas`；已实测容器重启后组织、项目和任务保留。
 - 已实测服务健康、任务幂等与 worker 完成、PostgreSQL 跨租户 RLS 拒绝、Next.js 生产构建和四产品共 152 项回归测试。
+- GPU Data 真实闭环已完成并实测：四表样例/上传、持久化数据集、异步真实分析、质量阻断、结果页和四类报告下载；样例得到 1100 USD、12 张 GPU、1 个闲置候选，坏数据被阻断且未发布正式成本。
+- GPU Data 的幂等提交、四个下载文件、容器重启持久化、跨租户读写拒绝和 worker 依赖重启恢复均已实测。
 
 ## Confirmed Decisions and Constraints
 
@@ -63,4 +65,4 @@
 
 ## Next Concrete Action
 
-提交并推送 `feature/production-saas-foundation`。下一阶段优先接入一个公开云价格源或真实客户脱敏数据源，并让现有计算核心通过统一任务入口消费持久化数据快照。
+以公开或脱敏真实数据验证 GPU Data 的字段映射和成本对账，再按同一最小闭环接入 GPU Optimize。
